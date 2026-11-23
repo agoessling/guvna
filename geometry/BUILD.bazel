@@ -1,0 +1,27 @@
+load("@rules_python//python:py_library.bzl", "py_library")
+load("@rules_shell//shell:sh_binary.bzl", "sh_binary")
+
+exports_files(["inputs.MODULE.bazel", "runtime.lock"])
+
+sh_binary(
+    name = "generate",
+    srcs = ["generate.sh"],
+    data = [
+        "__init__.py",
+        "annotations.py",
+        "generate.py",
+        "mesh_policy.py",
+        "model.py",
+        "validate.py",
+        "@gmsh_runtime//:runtime",
+    ],
+    use_bash_launcher = True,
+    target_compatible_with = ["@platforms//os:linux", "@platforms//cpu:x86_64"],
+    visibility = ["//visibility:public"],
+)
+
+py_library(
+    name = "model",
+    srcs = ["__init__.py", "annotations.py", "mesh_policy.py", "model.py"],
+    visibility = ["//visibility:public"],
+)

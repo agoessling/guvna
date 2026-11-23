@@ -1,0 +1,2 @@
+gmsh_runtime = use_repo_rule("//geometry:repositories.bzl", "gmsh_runtime")
+gmsh_runtime(name = "gmsh_runtime", lock = "//geometry:runtime.lock")

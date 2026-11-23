@@ -30,8 +30,19 @@ bazel run //examples:benchmark_gpu -- cpw --output /tmp/guvna-cpw-gpu
 
 The benchmark saves its input, log, numerical results, and validation summary in that directory.
 The [source build guide](tools/palace/source/README.md) covers prerequisites, caches, offline use
-and MPI. See the [example guide](examples/README.md) for the available simulations. The first
-planned GuVNA-specific simulation is a nominal 50 Ω PCB through-line.
+and MPI. See the [example guide](examples/README.md) for the upstream simulations.
+
+## Parametric geometry and meshing
+
+The [Python geometry library](geometry/README.md) generates a boxed pair of coupled microstrips
+with the Gmsh API. Dimensions are in millimetres. A sweep can vary coupling gap, section length,
+or lid clearance and pass each candidate to the same four-port Palace workflow.
+
+Keep mesh refinement rules separate from the physical dimensions. Attach local sizing rules to
+features such as trace edges, coupling gaps, and ports so the refinement follows each geometry.
+This lets us refine a fixed design and check whether its predicted directivity converges.
+
+## Benchmark results
 
 For timings on kratos, start with the [source and prebuilt comparison](examples/PERFORMANCE.md).
 The [four-port benchmark](docs/application-benchmark.md), [MPI measurements](docs/mpi.md), and
