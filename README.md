@@ -42,6 +42,9 @@ Keep mesh refinement rules separate from the physical dimensions. Attach local s
 features such as trace edges, coupling gaps, and ports so the refinement follows each geometry.
 This lets us refine a fixed design and check whether its predicted directivity converges.
 
+The [coupler run guide](coupler/README.md) covers running Palace on a coupon and accessing its
+complex S-parameters and field outputs.
+
 ## Benchmark results
 
 For timings on kratos, start with the [source and prebuilt comparison](examples/PERFORMANCE.md).

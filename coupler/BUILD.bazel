@@ -1,0 +1,25 @@
+load("@rules_shell//shell:sh_binary.bzl", "sh_binary")
+load("@rules_shell//shell:sh_test.bzl", "sh_test")
+
+sh_binary(
+    name = "solve",
+    srcs = ["solve.py"],
+    args = [
+        "--generator",
+        "$(rootpath //geometry:generate)",
+        "--palace",
+        "$(rootpath //tools/palace/source:palace_cpu)",
+    ],
+    data = [
+        "results.py",
+        "//geometry:generate",
+        "//tools/palace/source:palace_cpu",
+    ],
+)
+
+sh_test(
+    name = "matrix_test",
+    size = "small",
+    srcs = ["matrix_test.py"],
+    data = ["results.py"],
+)
