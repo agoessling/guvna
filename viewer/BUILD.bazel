@@ -1,0 +1,69 @@
+load("@rules_python//python:py_binary.bzl", "py_binary")
+load("@rules_python//python:py_test.bzl", "py_test")
+
+py_binary(
+    name = "serve",
+    srcs = ["fields.py", "inputs.py", "scene.py", "server.py", "sweep.py"],
+    main = "server.py",
+    data = glob(["ui/*"]) + [
+        "@cad_three//:LICENSE",
+        "@cad_three//:build/three.core.min.js",
+        "@cad_three//:build/three.module.min.js",
+        "@cad_three//:examples/jsm/controls/OrbitControls.js",
+        "@cad_three//:examples/jsm/environments/RoomEnvironment.js",
+    ],
+    python_version = "3.12",
+    deps = [
+        "//geometry:model",
+        "@rules_python//python/runfiles",
+        "@viewer_deps//meshio",
+        "@viewer_deps//numpy",
+        "@viewer_deps//vtk",
+    ],
+)
+
+py_test(
+    name = "scene_test",
+    srcs = ["scene.py", "scene_test.py"],
+    python_version = "3.12",
+    deps = ["//geometry:model", "@viewer_deps//meshio"],
+)
+
+py_test(
+    name = "inputs_test",
+    srcs = ["inputs.py", "inputs_test.py"],
+    python_version = "3.12",
+)
+
+py_test(
+    name = "coaxial_test",
+    srcs = ["coaxial_test.py", "inputs.py", "scene.py"],
+    data = [
+        "@palace_examples//:examples/coaxial/coaxial_lumped_wave.json",
+        "@palace_examples//:examples/coaxial/mesh/coaxial.msh",
+    ],
+    python_version = "3.12",
+    deps = [
+        "//geometry:model",
+        "@rules_python//python/runfiles",
+        "@viewer_deps//meshio",
+    ],
+)
+
+py_test(
+    name = "fields_test",
+    srcs = ["fields.py", "fields_test.py", "inputs.py", "scene.py"],
+    python_version = "3.12",
+    deps = [
+        "//geometry:model",
+        "@viewer_deps//meshio",
+        "@viewer_deps//numpy",
+        "@viewer_deps//vtk",
+    ],
+)
+
+py_test(
+    name = "sweep_test",
+    srcs = ["inputs.py", "sweep.py", "sweep_test.py"],
+    python_version = "3.12",
+)

@@ -14,3 +14,5 @@ include("//tools:palace_gpu.MODULE.bazel")
 include("//tools/palace/source:inputs.MODULE.bazel")
 
 include("//geometry:inputs.MODULE.bazel")
+
+include("//viewer:inputs.MODULE.bazel")

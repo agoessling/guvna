@@ -1,0 +1,38 @@
+#workspace { display: flex; flex: 1; flex-direction: column; min-width: 0; }
+#results { flex: none; min-width: 0; border-top: 1px solid #8598a5; background: #f8fafb; }
+#results-bar {
+  display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+  padding: 3px 8px; background: #e5ebef; border-bottom: 1px solid #b5c2cc;
+}
+#results-bar label { display: inline-flex; align-items: center; gap: 4px; }
+#results-bar select { height: 22px; padding-inline: 4px; }
+#dock-toggle { border: 0; background: transparent; font-weight: 650; padding: 0 4px; }
+#dock-toggle::before { content: '▾'; margin-right: 5px; }
+#dock-toggle[aria-expanded=false]::before { content: '▸'; }
+#plot-status { margin-left: auto; color: #455e70; }
+#results-body { display: flex; height: clamp(140px, 24vh, 255px); }
+#plot { width: 0; flex: 1; height: 100%; background: #fff; touch-action: manipulation; }
+#plot:focus-visible { outline: 2px solid #4084af; outline-offset: -2px; }
+#plot text { font: 10px var(--mono); fill: #4d606f; }
+#trace-list { overflow: auto; width: clamp(170px, 22%, 270px); border-left: 1px solid #bcc9d1; }
+#trace-list table { width: 100%; border-collapse: collapse; font: 11px var(--mono); }
+#trace-list th, #trace-list td { text-align: right; border-bottom: 1px solid #dce3e8; }
+#trace-list th { background: #edf2f5; position: sticky; top: 0; padding: 5px; }
+#trace-list td { padding: 3px 5px; white-space: nowrap; }
+#trace-list :is(th, td):first-child { text-align: left; }
+#trace-list button, #results-node {
+  height: 21px; padding: 0 3px; border: none; background: none; font: inherit;
+}
+#trace-list input { vertical-align: middle; }
+#trace-list tr.selected, #results-node.selected { background: #d4e4ee; }
+#results-node { width: 100%; text-align: left; padding-left: 28px; }
+#field-missing {
+  position: absolute; bottom: 29px; left: 8px; padding: 3px 7px;
+  background: #fff9e7; border: 1px solid #baac82; pointer-events: none;
+}
+@media (max-width: 700px) {
+  #results-bar { gap: 4px; }
+  #results-body { height: 23vh; min-height: 110px; }
+  #trace-list { width: 150px; }
+  #plot-status { margin-left: 0; }
+}

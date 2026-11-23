@@ -1,0 +1,214 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>GuVNA · Model inspector</title>
+    <link rel="icon" href="data:," />
+    <link rel="stylesheet" href="/style.css" />
+    <link rel="stylesheet" href="/results.css" />
+    <script type="importmap">
+      { "imports": { "three": "/lib/three.module.min.js" } }
+    </script>
+    <script type="module" src="/main.js"></script>
+  </head>
+  <body>
+    <header>
+      <strong>GuVNA</strong>
+      <span class="apptitle">Inspector</span>
+      <button
+        id="sidebar-toggle"
+        title="Toggle model browser"
+        aria-label="Toggle model browser"
+      >
+        ☰
+      </button>
+      <select id="source" aria-label="Inspection source"></select>
+      <div class="tools" role="group" aria-label="Display">
+        <button id="geometry" aria-pressed="true">Geometry</button>
+        <button id="mesh" aria-pressed="false">Gmsh mesh</button>
+      </div>
+      <div class="tools" role="group" aria-label="Navigation">
+        <button id="orbit" aria-pressed="true" title="Drag to orbit">Orbit</button>
+        <button id="pan" aria-pressed="false" title="Drag to pan">Pan</button>
+        <button id="fit" title="Fit model (F)">Fit</button>
+      </div>
+      <button id="cut" aria-pressed="false" aria-controls="cut-controls">Cut plane</button>
+      <button id="fields" aria-pressed="false" aria-controls="field-legend" disabled>
+        Field cut
+      </button>
+      <button id="surfaces" aria-pressed="false" aria-controls="surface-options" disabled>
+        Surface fields
+      </button>
+      <span id="field-sample" hidden>
+        <label>Drive <select id="field-drive"></select></label>
+        <select id="field-frequency" aria-label="Saved field frequency"></select>
+      </span>
+      <select id="view" aria-label="Camera direction">
+        <option value="">View…</option>
+        <option>Iso</option>
+        <option>Top</option>
+        <option>Front</option>
+        <option>Right</option>
+        <option>Back</option>
+        <option>Left</option>
+        <option>Bottom</option>
+      </select>
+      <select id="projection" aria-label="Projection">
+        <option value="ortho">Orthographic</option>
+        <option value="persp">Perspective</option>
+      </select>
+    </header>
+    <main>
+      <aside id="sidebar" aria-label="Model browser">
+        <div id="browser-pane">
+          <section id="cut-controls" aria-label="Cut plane settings" hidden>
+            <div class="heading" data-help="Cut plane">Cut plane</div>
+            <div class="pair">
+              <label for="axis">Normal axis</label>
+              <select id="axis">
+                <option value="0">X · YZ plane</option>
+                <option value="1">Y · XZ plane</option>
+                <option value="2">Z · XY plane</option>
+              </select>
+            </div>
+            <div class="pair">
+              <label for="position">Position (mm)</label>
+              <input id="position" type="number" step="any" required>
+            </div>
+            <div class="pair">
+              <span data-help="Keep side"><label for="keep">Keep side</label></span>
+              <select id="keep">
+                <option value="lower">≤ position</option>
+                <option value="upper">≥ position</option>
+              </select>
+            </div>
+          </section>
+          <div class="heading" data-help="Model browser">Model browser</div>
+          <div id="tree"></div>
+          <details open hidden>
+            <summary>Results</summary>
+            <button id="results-node">Port response</button>
+          </details>
+          <details id="display" open>
+            <summary>Display</summary>
+            <div class="setting" data-help="Construction grid">
+              <input type="checkbox" id="grid" checked />
+              <label for="grid">Construction grid</label>
+            </div>
+          </details>
+        </div>
+        <section id="property-pane">
+          <div class="heading" data-help="Properties">Properties</div>
+          <div id="selection">Model</div>
+          <dl id="props"></dl>
+        </section>
+      </aside>
+      <div id="workspace" role="group" aria-label="Model and results">
+      <section id="viewport" aria-label="3D viewport">
+        <canvas id="scene" tabindex="0" aria-label="Interactive 3D model"></canvas>
+        <span id="orbit-pivot" aria-hidden="true" hidden></span>
+        <output id="error" role="status">Loading model…</output>
+        <div id="readout"></div>
+        <output id="field-missing" hidden></output>
+        <div id="scale" aria-label="Model scale"></div>
+        <div id="field-panel">
+          <details id="surface-options" hidden>
+            <summary>Surface fields</summary>
+            <label><span data-help="Surface current">Surface current |Jₛ|</span>
+              <input id="sheet-on" type="checkbox">
+            </label>
+            <label>Plot current on <select id="sheet-target"></select></label>
+            <label><span data-help="Material side">Surface electric field</span>
+              <input id="skin-on" type="checkbox">
+            </label>
+            <label>Sample from <select id="skin-domain"></select></label>
+            <label>Plot E on <select id="skin-target"></select></label>
+            <output id="sheet-status" role="status"></output>
+            <output id="skin-status" role="status"></output>
+          </details>
+          <details id="field-legend" hidden>
+            <summary title="Edit electric field display">
+              <span id="field-symbol">|E|</span> <span id="field-ramp"></span>
+              <span id="field-range"></span>
+            </summary>
+            <label>Quantity
+              <select id="field-component">
+                <option value="magnitude">Magnitude |E|</option>
+                <option value="x">Signed Ex</option>
+                <option value="y">Signed Ey</option>
+                <option value="z">Signed Ez</option>
+              </select>
+            </label>
+            <div id="phase-controls" hidden>
+              <span data-help="RF phase">RF phase</span>
+              <button id="phase-knob" type="button" role="slider" aria-label="RF phase dial"
+                      aria-valuemin="0" aria-valuemax="360" aria-valuenow="0"></button>
+              <input id="field-phase" type="number" min="0" max="360" value="0" step="1"
+                     aria-label="RF phase in degrees">°
+              <button id="phase-play" type="button" aria-label="Play RF phase">Play</button>
+            </div>
+            <label>Scale
+              <select id="field-map">
+                <option value="40">40 dB</option><option value="60">60 dB</option>
+                <option value="0">Linear</option>
+              </select>
+            </label>
+            <label>Reference (V/m)
+              <input id="field-reference" type="number" min="0" step="any">
+            </label>
+            <span data-help="Field reference"><button id="field-fit">Fit to cut</button></span>
+            <label id="cut-material">Cut material <select id="field-domain"></select></label>
+          </details>
+          <details id="current-legend" hidden>
+            <summary title="Edit surface current display">
+              |Jₛ| <span id="current-ramp"></span> <span id="current-range"></span>
+            </summary>
+            <label>Scale
+              <select id="current-map">
+                <option value="40">40 dB</option><option value="60">60 dB</option>
+                <option value="0">Linear</option>
+              </select>
+            </label>
+            <label>Reference (A/m)
+              <input id="current-reference" type="number" min="0" step="any">
+            </label>
+            <button id="current-fit">Fit to surfaces</button>
+          </details>
+          <output id="field-status" role="status"></output>
+        </div>
+      </section>
+      <section id="results" aria-label="Port response" hidden>
+        <div id="results-bar">
+          <button id="dock-toggle" aria-expanded="true" aria-controls="results-body">
+            Port response
+          </button>
+          <label>Drive <select id="plot-drive"></select></label>
+          <label>Plot <select id="plot-quantity">
+            <option value="1">Magnitude (dB)</option>
+            <option value="2">Phase (°)</option>
+          </select></label>
+          <label>Marker <select id="plot-marker"></select></label>
+          <span data-help="Field samples" id="plot-status"></span>
+        </div>
+        <div id="results-body">
+          <svg id="plot" role="slider" tabindex="0" aria-label="Port response frequency marker"
+               aria-orientation="horizontal"></svg>
+          <div id="trace-list">
+            <table aria-label="Port values at the marker">
+              <thead><tr><th>Trace</th><th>dB</th><th>Phase (°)</th></tr></thead>
+              <tbody id="trace-values"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+      </div>
+    </main>
+    <footer>
+      <span id="summary"></span>
+      <span>
+        Drag a surface to orbit · Middle / right drag: pan · Wheel: zoom · Double-click: center
+      </span>
+    </footer>
+  </body>
+</html>

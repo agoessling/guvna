@@ -1,0 +1,28 @@
+viewer_python = use_extension("@rules_python//python/extensions:python.bzl", "python")
+viewer_python.toolchain(python_version = "3.12")
+
+viewer_pip = use_extension("@rules_python//python/extensions:pip.bzl", "pip")
+viewer_pip.parse(
+    hub_name = "viewer_deps",
+    python_version = "3.12",
+    requirements_lock = "//viewer:requirements.lock",
+)
+use_repo(viewer_pip, "viewer_deps")
+
+cad_archive = use_repo_rule("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
+cad_archive(
+    name = "cad_three",
+    urls = ["https://registry.npmjs.org/three/-/three-0.180.0.tgz"],
+    sha256 = "ad66d724565ee29a2467277fa84daa5ed0211d6b8d446e9ef29f6bae0cd14144",
+    strip_prefix = "package",
+    type = "tar.gz",
+    build_file_content = """
+exports_files([
+    "LICENSE",
+    "build/three.core.min.js",
+    "build/three.module.min.js",
+    "examples/jsm/controls/OrbitControls.js",
+    "examples/jsm/environments/RoomEnvironment.js",
+])
+""",
+)
