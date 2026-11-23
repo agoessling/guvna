@@ -1,0 +1,17 @@
+http_archive = use_repo_rule("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
+
+gpu_image = "palace-x86_64_v3_cuda-be4b5d3"
+gpu_run_url = "https://nightly.link/awslabs/palace/actions/runs/44967638698/"
+
+http_archive(
+    name = "palace_gpu_image",
+    build_file_content = """
+filegroup(
+    name = "sif",
+    srcs = ["%s.sif"],
+    visibility = ["//visibility:public"],
+)
+""" % gpu_image,
+    sha256 = "413897111b8d13ae47a779bc55ddc094a16937e51b04860d4b72d97a0f849135",
+    urls = [gpu_run_url + gpu_image + "-sif.zip"],
+)

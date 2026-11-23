@@ -1,0 +1,104 @@
+#!/usr/bin/env python3
+"""Run the pinned upstream CUDA Palace image on Linux/x86-64."""
+
+import fcntl
+import os
+from pathlib import Path
+import subprocess
+import sys
+import tempfile
+
+ARCHIVE = "palace-x86_64_v3_cuda-be4b5d3-sif.zip"
+# Keep the unpacked runtime and CUDA kernel cache keyed by the ZIP digest pinned in Bazel.
+SHA256 = "413897111b8d13ae47a779bc55ddc094a16937e51b04860d4b72d97a0f849135"
+# SquashFS partition offset in the pinned SIF.
+SQUASHFS_OFFSET = 36864
+
+
+def runtime_root():
+    cache = Path(os.environ.get("XDG_CACHE_HOME", Path.home() / ".cache")) / "guvna"
+    return cache / SHA256 / "root"
+
+
+def unpack(sif):
+    root = runtime_root()
+    root.parent.mkdir(parents=True, exist_ok=True)
+    with (root.parent / "unpack.lock").open("a") as lock:
+        fcntl.flock(lock, fcntl.LOCK_EX)
+        if not root.is_dir():
+            with tempfile.TemporaryDirectory(dir=root.parent) as tmp:
+                stage = Path(tmp) / "root"
+                subprocess.run(["unsquashfs", "-no-progress", "-no-xattrs", "-processors", "4",
+                                "-offset", str(SQUASHFS_OFFSET), "-dest", stage, sif], check=True)
+                stage.rename(root)
+    return root
+
+
+def provision():
+    root = runtime_root()
+    if root.is_dir():
+        return root
+    repo = Path(__file__).resolve().parents[1]
+    data = Path(os.environ.get("XDG_DATA_HOME", Path.home() / ".local/share")) / "guvna"
+    command = ["bazel", "run"]
+    # Older installs can seed Bazel's repository cache from their saved ZIP.
+    source = os.environ.get("GUVNA_PALACE_GPU_ARCHIVE")
+    with tempfile.TemporaryDirectory() as tmp:
+        if source:
+            (Path(tmp) / ARCHIVE).symlink_to(Path(source).resolve(strict=True))
+            command.append(f"--distdir={tmp}")
+        elif (data / ARCHIVE).is_file():
+            command.append(f"--distdir={data.resolve()}")
+        subprocess.run([*command, "//tools:install_palace_gpu"], cwd=repo, check=True,
+                       stdout=sys.stderr)
+    return root
+
+
+def run():
+    if sys.platform != "linux" or os.uname().machine != "x86_64":
+        sys.exit("The pinned Palace CUDA image requires x86-64-v3 Linux")
+    if len(sys.argv) == 3 and sys.argv[1] == "--unpack":
+        print(unpack(sys.argv[2]))
+        return
+    solver_args = sys.argv[1:]
+    ranks = 1
+    if solver_args and solver_args[0] in ("-np", "--np"):
+        if len(solver_args) < 2 or not solver_args[1].isdecimal() or int(solver_args[1]) < 1:
+            sys.exit("Expected a positive MPI rank count after -np")
+        ranks = int(solver_args[1])
+        solver_args = solver_args[2:]
+    root = provision()
+    if sys.argv[1:] == ["--install"]:
+        print(root)
+        return
+    # Load the matching user-space driver from the running host kernel module. All CUDA toolkit
+    # libraries and Palace's numerical libraries come from the immutable image.
+    driver = Path("/usr/lib/x86_64-linux-gnu")
+    args = ["bwrap", "--die-with-parent", "--ro-bind", root, "/", "--proc", "/proc",
+            "--dev", "/dev", "--ro-bind", "/sys", "/sys", "--tmpfs", "/tmp",
+            "--tmpfs", "/mnt"]
+    for dev in sorted(Path("/dev").glob("nvidia*")):
+        args.extend(["--dev-bind", dev, dev])
+    for glob in ("libcuda.so*", "libnvidia-ptxjitcompiler.so*", "libnvidia-gpucomp.so*",
+                 "libnvidia-nvvm*.so*"):
+        for lib in sorted(driver.glob(glob)):
+            args.extend(["--ro-bind", lib.resolve(), f"/mnt/driver/{lib.name}"])
+    jit = root.parent / "cuda-cache"
+    jit.mkdir(exist_ok=True)
+    args.extend(["--bind", jit, "/mnt/cuda-cache"])
+    work = Path.cwd()
+    args.extend(["--bind", work, "/mnt/work", "--chdir", "/mnt/work", "--clearenv",
+                 "--setenv", "LD_LIBRARY_PATH", "/mnt/driver:/opt/views/view/lib",
+                 "--setenv", "CUDA_CACHE_PATH", "/mnt/cuda-cache",
+                 "--setenv", "HOME", "/tmp", "--setenv", "TMPDIR", "/tmp",
+                 "--setenv", "PATH", "/opt/views/view/bin:/usr/bin:/bin",
+                 "--setenv", "OPENBLAS_NUM_THREADS", "1",
+                 "--setenv", "OMP_NUM_THREADS", os.environ.get("OMP_NUM_THREADS", "1")])
+    if ranks > 1:
+        args.extend(["/opt/views/view/bin/mpirun", "--bind-to", "none", "-np", str(ranks)])
+    args.extend(["/opt/views/view/bin/palace-x86_64.bin", *solver_args])
+    os.execvp("bwrap", [str(arg) for arg in args])
+
+
+if __name__ == "__main__":
+    run()

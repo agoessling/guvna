@@ -1,0 +1,25 @@
+load("@rules_shell//shell:sh_binary.bzl", "sh_binary")
+
+sh_binary(
+    name = "palace_prebuilt",
+    srcs = ["palace.sh"],
+    data = ["@palace_cpu//:runtime"],
+    target_compatible_with = [
+        "@platforms//cpu:x86_64",
+        "@platforms//os:linux",
+    ],
+    use_bash_launcher = True,
+    visibility = ["//visibility:public"],
+)
+
+alias(
+    name = "palace",
+    actual = "//tools/palace/source:palace_cpu",
+    visibility = ["//visibility:public"],
+)
+
+alias(
+    name = "palace_gpu",
+    actual = "//tools/palace/source:palace_gpu",
+    visibility = ["//visibility:public"],
+)

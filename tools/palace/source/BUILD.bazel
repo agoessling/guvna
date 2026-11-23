@@ -1,0 +1,31 @@
+load(":bundle.bzl", "palace_bundle")
+load(":installer.bzl", "source_installer")
+load(":solver.bzl", "palace_solver")
+
+exports_files([
+    "cuda.lock",
+    "deps/sources.lock.json",
+    "inputs.MODULE.bazel",
+    "sysroot.lock",
+])
+
+source_installer("cpu")
+source_installer("gpu")
+
+palace_bundle(name = "bundle_cpu", device = "cpu")
+
+palace_bundle(name = "bundle_gpu", device = "gpu")
+
+palace_solver(
+    name = "palace_cpu",
+    bundle = ":bundle_cpu",
+    device = "cpu",
+    visibility = ["//visibility:public"],
+)
+
+palace_solver(
+    name = "palace_gpu",
+    bundle = ":bundle_gpu",
+    device = "gpu",
+    visibility = ["//visibility:public"],
+)

@@ -1,0 +1,13 @@
+module(name = "guvna")
+
+bazel_dep(name = "platforms", version = "1.0.0")
+bazel_dep(name = "rules_shell", version = "0.6.1")
+
+cpu_runtime = use_repo_rule("//tools/palace:repositories.bzl", "cpu_runtime")
+cpu_runtime(name = "palace_cpu")
+
+include("//examples:palace_inputs.MODULE.bazel")
+
+include("//tools:palace_gpu.MODULE.bazel")
+
+include("//tools/palace/source:inputs.MODULE.bazel")

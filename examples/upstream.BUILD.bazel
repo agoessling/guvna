@@ -1,0 +1,13 @@
+exports_files([
+    "examples/coaxial/coaxial_lumped_wave.json",
+    "examples/coaxial/mesh/coaxial.msh",
+    "examples/cpw/cpw_lumped_uniform.json",
+    "examples/cpw/mesh/cpw_lumped_0.msh",
+    "examples/spheres/mesh/spheres.msh",
+    "examples/spheres/spheres.json",
+    "examples/transmon/mesh/transmon.msh2",
+    "examples/transmon/transmon_amr.json",
+    "test/data/regression/ref/coaxial/lumped_wave/port-S.csv",
+    "test/data/regression/ref/cpw/lumped_uniform/port-S.csv",
+    "test/data/regression/ref/spheres/terminal-C.csv",
+])

@@ -1,0 +1,246 @@
+{
+  "catch2.tar.gz": {
+    "sha256": "18b3f70ac80fccc340d8c6ff0f339b2ae64944782f8d2fca2bd705cf47cadb79",
+    "url": [
+      "https://codeload.github.com/",
+      "catchorg/Catch2/tar.gz/refs/tags/v3.8.1"
+    ]
+  },
+  "eigen.tar.gz": {
+    "sha256": "e9c326dc8c05cd1e044c71f30f1b2e34a6161a3b6ecf445d56b53ff1669e3dec",
+    "url": [
+      "https://gitlab.com/",
+      "libeigen/eigen/-/archive/5.0.1/eigen-5.0.1.tar.gz"
+    ]
+  },
+  "fast_float.tar.gz": {
+    "sha256": "4458aae4b0eb55717968edda42987cabf5f7fc737aee8fede87a70035dba9ab0",
+    "url": [
+      "https://codeload.github.com/",
+      "fastfloat/fast_float/tar.gz/refs/tags/v6.1.6"
+    ]
+  },
+  "fmt-uint128.patch": {
+    "sha256": "2cd2e66cf6960386ea88511a1cdfd348fb588f3e33ff41c4bea4ca0cbbcd97d0",
+    "url": [
+      "https://github.com/fmtlib/fmt/commit/",
+      "0ce7d8708583bb745481e33841d5f56ee70c0e00.patch"
+    ]
+  },
+  "fmt.zip": {
+    "sha256": "a2f4a8d51178f954e4c339007f77edd76ba0cb2e36f87a48e5a5403d9be5878f",
+    "url": [
+      "https://github.com/",
+      "fmtlib/fmt/releases/download/12.2.0/fmt-12.2.0.zip"
+    ]
+  },
+  "gslib.tar.gz": {
+    "sha256": "572c78b1ca4ddda75ec85c6299ee0597459f4dbf5170b9faa6de4c435dcdc80b",
+    "url": [
+      "https://codeload.github.com/",
+      "Nek5000/gslib/tar.gz/refs/tags/v1.0.9"
+    ]
+  },
+  "hypre.tar.gz": {
+    "sha256": "5273205a310fb6aa3ae506ce216760fb67b30e02024874f3cdb8b811e4801de7",
+    "url": [
+      "https://codeload.github.com/",
+      "hypre-space/hypre/tar.gz/refs/tags/v3.2.0"
+    ]
+  },
+  "hypre_pr1629.patch": {
+    "sha256": "8b11d35c29215d462b8e727775e8771d808806ced107e1675082ed80b9ba84fb",
+    "url": [
+      "https://github.com/",
+      "hypre-space/hypre/commit/",
+      "5d0282f44490f406ea532ea6778fe914df677346.patch?full_index=1"
+    ]
+  },
+  "json.tar.xz": {
+    "sha256": "42f6e95cad6ec532fd372391373363b62a14af6d771056dbfc86160e6dfff7aa",
+    "url": [
+      "https://github.com/",
+      "nlohmann/json/releases/download/v3.12.0/json.tar.xz"
+    ]
+  },
+  "json_schema_validator.tar.gz": {
+    "sha256": "0c8bf7ba59bd50e312d82da4bab1d49cf3e2211cfbd659472f9c90505d2a4e4c",
+    "url": [
+      "https://github.com/",
+      "pboettch/json-schema-validator/archive/refs/tags/2.4.1.tar.gz"
+    ]
+  },
+  "libceed.tar.gz": {
+    "sha256": "8f60cd5ae54803ae393ca2c081486d4a0b414694c14b1402a4c0e04f843ea0eb",
+    "url": [
+      "https://codeload.github.com/",
+      "CEED/libCEED/tar.gz/refs/tags/v1.0.1"
+    ]
+  },
+  "libxsmm.tar.gz": {
+    "sha256": "704ed8f99b61a767798ed1ee1cadc5d185ca449f466a2bae37930f68c65961e9",
+    "url": [
+      "https://codeload.github.com/",
+      "libxsmm/libxsmm/tar.gz/refs/tags/2.1.0"
+    ]
+  },
+  "magma.tar.gz": {
+    "sha256": "26347adbccbe7a6693d6b3f3c0ab5620037eb3a62b5ef69d05e40289472a82a4",
+    "url": [
+      "https://codeload.github.com/",
+      "icl-utk-edu/magma/tar.gz/refs/tags/v2.10.0"
+    ]
+  },
+  "metis.tar.gz": {
+    "sha256": "3d9053692b9f0eb099427f50f224c1c04645c2e0d76f2b8028f56841fbc05ff1",
+    "url": [
+      "https://bitbucket.org/",
+      "petsc/pkg-metis/get/v5.1.0-p13.tar.gz"
+    ]
+  },
+  "mfem.tar.gz": {
+    "sha256": "d5aabe991b8b5569aa26e2b5d4b59ac617ee10ebac3d45fd6ff9c74b2c1a47dd",
+    "url": [
+      "https://codeload.github.com/",
+      "mfem/mfem/tar.gz/refs/tags/v4.10"
+    ]
+  },
+  "mfem_pr3847.diff": {
+    "sha256": "e9be1a0d4b2642ed1b72f31c36065cf0aacbe342b6594d5d943782c73a6177f4",
+    "url": [
+      "https://github.com/",
+      "mfem/mfem/compare/",
+      "2d574015756711029556c14d096ca52c15d5b663...",
+      "50ead1a9a785e3273b2a72ff59ac8ed8a496b498.diff"
+    ]
+  },
+  "mfem_pr5353.diff": {
+    "sha256": "c35f584090f97c84c12fc80e6d5c068512911d192132e18f5aa4254f507c5e4f",
+    "url": [
+      "https://raw.githubusercontent.com/",
+      "awslabs/palace/b22f654ab36fe01f1f3176349c60626efed1a6a2/extern/patch/mfem/",
+      "mfem_pr5353.diff"
+    ]
+  },
+  "mfem_pr5494.diff": {
+    "sha256": "771d758ce461c7353d2b33ff6b5c9fd5404cae77a0340c1a67c3935ce606fd4c",
+    "url": [
+      "https://github.com/",
+      "mfem/mfem/compare/",
+      "10b0b596dbc26dca384b9f25f23026b1a6403592...",
+      "399d72c2b7607e25d196dc19fd70b8840eaf1cc8.diff"
+    ]
+  },
+  "mfem_pr5502.diff": {
+    "sha256": "52ccf3332f87aaf7ebc84674448226201c04343a3e298006bea5fd8be8e92533",
+    "url": [
+      "https://github.com/",
+      "mfem/mfem/commit/3091ba40b238c4008b67216314bb26da6738b833.diff"
+    ]
+  },
+  "mfem_pr5531.diff": {
+    "sha256": "2da8792e74465c9c0767c4c21961bb5af11fa9b4cd57aa06e8ce0db6479641fe",
+    "url": [
+      "https://github.com/",
+      "mfem/mfem/commit/641e56439e63a1774f43bc2ba904797694a047ad.diff"
+    ]
+  },
+  "mfem_pr5610.diff": {
+    "sha256": "917b2c01f2032ececb8f7ae3b7a23c82d2ccd3b7c8ebcdffdea80d64c10ab964",
+    "url": [
+      "https://github.com/",
+      "mfem/mfem/commit/e9247694fb4e8e433df3ce24c4aaa3c5d5487c91.diff"
+    ]
+  },
+  "mfem_pr5639.diff": {
+    "sha256": "9b0063b6a6717fa951bb4af1bc7944f9896eccb69ec01d869c7e48aef9066e03",
+    "url": [
+      "https://github.com/",
+      "mfem/mfem/commit/864d476acf25135d2059d3379d208e635823f26c.diff"
+    ]
+  },
+  "mfem_pr5698.diff": {
+    "sha256": "eed51f3d84468daa250f1ba71f0bd6072e9c98ab96f244b62820bf0a1c32bc7f",
+    "url": [
+      "https://github.com/",
+      "mfem/mfem/commit/e38d2e051b05ba10e27eeb96dfc556ce6424c649.diff"
+    ]
+  },
+  "mfem_pr5714.diff": {
+    "sha256": "3c692ce61f90033c3aa9434f64fc91360859f9a7db10c72b1ae1366ccbb673b5",
+    "url": [
+      "https://github.com/",
+      "mfem/mfem/commit/c09fb9b6c1178afaae083aa19448a9b4abc3c35f.diff"
+    ]
+  },
+  "palace.tar.gz": {
+    "sha256": "12eae73f5f6769e6420f137a10dad82daa1f773092701482892a821f687fa3f4",
+    "url": [
+      "https://codeload.github.com/",
+      "awslabs/palace/tar.gz/ca9a6a2d1e64a410229c3d7538507e5eae975cc6"
+    ]
+  },
+  "parmetis.tar.gz": {
+    "sha256": "132cf47e04db99b63a4898f2113fad63cc1d22e8a3ca10c4eeec612d39a5a2d9",
+    "url": [
+      "https://bitbucket.org/",
+      "petsc/pkg-parmetis/get/v4.0.3-p11.tar.gz"
+    ]
+  },
+  "petsc.tar.gz": {
+    "sha256": "cc8d22eade950b8125e65ba90f95f582937182c71308ed7b2b6184c760706765",
+    "url": [
+      "https://gitlab.com/",
+      "petsc/petsc/-/archive/v3.26.0/petsc-v3.26.0.tar.gz"
+    ]
+  },
+  "scalapack.tar.gz": {
+    "sha256": "5d93701eca663925e98010dd8d0f45fd79b2191d74e5afa5711d587370a8b9dd",
+    "url": [
+      "https://codeload.github.com/",
+      "Reference-ScaLAPACK/scalapack/tar.gz/refs/tags/v2.2.3"
+    ]
+  },
+  "scn.zip": {
+    "sha256": "4e2540e947338ec5f51e89e3b61dc9a7cd0022cece80c15a192253b5ebc573b8",
+    "url": [
+      "https://github.com/",
+      "eliaskosunen/scnlib/archive/refs/tags/v4.0.1.zip"
+    ]
+  },
+  "slepc.tar.gz": {
+    "sha256": "0d920bb09e3cb92d63361fa36db12c50f27d2707933795ae8fa919f7a192dc82",
+    "url": [
+      "https://gitlab.com/",
+      "slepc/slepc/-/archive/v3.26.0/slepc-v3.26.0.tar.gz"
+    ]
+  },
+  "strumpack.tar.gz": {
+    "sha256": "f86a05d3ad9e87ad8a6e1008d15bf3e628f133bfe0a52d4268354a342cbe03d0",
+    "url": [
+      "https://codeload.github.com/",
+      "pghysels/STRUMPACK/tar.gz/refs/tags/v8.1.0"
+    ]
+  },
+  "sundials.tar.gz": {
+    "sha256": "01fe0742edac64f0d2976436be74ddd3ac6bcdde0e6638ba56b5942aefea42aa",
+    "url": [
+      "https://codeload.github.com/",
+      "LLNL/sundials/tar.gz/refs/tags/v7.9.0"
+    ]
+  },
+  "superlu.tar.gz": {
+    "sha256": "fa22640aacf6e8f26a2cc8642dec836fdc70f3351360b39eca65324ea1577cd5",
+    "url": [
+      "https://codeload.github.com/",
+      "xiaoyeli/superlu_dist/tar.gz/refs/tags/v9.3.1"
+    ]
+  },
+  "umpire.tar.gz": {
+    "sha256": "03a2f0cbbb5583789132bc557d70b6b127db84aff1661f6e6eccb95ba77fa1a0",
+    "url": [
+      "https://github.com/",
+      "LLNL/Umpire/releases/download/v2026.07.2/umpire-v2026.07.2.tar.gz"
+    ]
+  }
+}

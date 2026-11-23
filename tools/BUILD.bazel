@@ -1,0 +1,11 @@
+load("@rules_shell//shell:sh_binary.bzl", "sh_binary")
+
+exports_files(["palace_gpu"])
+
+# Only provisioning depends on the large CUDA image. The CPU benchmark uses the launcher alone.
+sh_binary(
+    name = "install_palace_gpu",
+    srcs = ["palace_gpu"],
+    args = ["--unpack", "$(rootpath @palace_gpu_image//:sif)"],
+    data = ["@palace_gpu_image//:sif"],
+)

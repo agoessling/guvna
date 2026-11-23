@@ -1,0 +1,73 @@
+load("@rules_shell//shell:sh_binary.bzl", "sh_binary")
+
+exports_files(["upstream.BUILD.bazel"])
+
+CASE_ARGS = [
+    "--source-marker",
+    "$(rootpath @palace_examples//:examples/spheres/spheres.json)",
+    "--transmon-reference",
+    "$(rootpath :transmon_reference.csv)",
+]
+
+CASE_DATA = [
+    ":transmon_reference.csv",
+    "@palace_examples//:examples/coaxial/coaxial_lumped_wave.json",
+    "@palace_examples//:examples/coaxial/mesh/coaxial.msh",
+    "@palace_examples//:examples/cpw/cpw_lumped_uniform.json",
+    "@palace_examples//:examples/cpw/mesh/cpw_lumped_0.msh",
+    "@palace_examples//:examples/spheres/mesh/spheres.msh",
+    "@palace_examples//:examples/spheres/spheres.json",
+    "@palace_examples//:examples/transmon/mesh/transmon.msh2",
+    "@palace_examples//:examples/transmon/transmon_amr.json",
+    "@palace_examples//:test/data/regression/ref/coaxial/lumped_wave/port-S.csv",
+    "@palace_examples//:test/data/regression/ref/cpw/lumped_uniform/port-S.csv",
+    "@palace_examples//:test/data/regression/ref/spheres/terminal-C.csv",
+]
+
+sh_binary(
+    name = "benchmark",
+    srcs = ["benchmark.py"],
+    args = CASE_ARGS + [
+        "--unpack-launcher",
+        "--cpu-launcher",
+        "$(rootpath //tools/palace/source:palace_cpu)",
+    ],
+    data = CASE_DATA + ["//tools/palace/source:palace_cpu"],
+)
+
+sh_binary(
+    name = "benchmark_gpu",
+    srcs = ["benchmark.py"],
+    args = CASE_ARGS + [
+        "--unpack-launcher",
+        "--device",
+        "GPU",
+        "--gpu-launcher",
+        "$(rootpath //tools/palace/source:palace_gpu)",
+        "--cpu-launcher",
+        "$(rootpath //tools/palace/source:palace_gpu)",
+    ],
+    data = CASE_DATA + ["//tools/palace/source:palace_gpu"],
+)
+
+sh_binary(
+    name = "benchmark_prebuilt",
+    srcs = ["benchmark.py"],
+    args = CASE_ARGS + [
+        "--cpu-launcher",
+        "$(rootpath //tools/palace:palace_prebuilt)",
+        "--gpu-launcher",
+        "$(rootpath //tools:palace_gpu)",
+    ],
+    data = CASE_DATA + [
+        "//tools:palace_gpu",
+        "//tools/palace:palace_prebuilt",
+    ],
+)
+
+sh_binary(
+    name = "benchmark_installed",
+    srcs = ["benchmark.py"],
+    args = CASE_ARGS,
+    data = CASE_DATA,
+)

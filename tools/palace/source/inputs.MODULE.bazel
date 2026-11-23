@@ -1,0 +1,18 @@
+locked_inputs = use_repo_rule("//tools/palace/source:fetch.bzl", "locked_inputs")
+
+locked_inputs(
+    name = "guvna_build_sysroot",
+    lock = "//tools/palace/source:sysroot.lock",
+    deb_base = "https://snapshot.ubuntu.com/ubuntu/20260501T000000Z/",
+)
+
+locked_inputs(
+    name = "guvna_build_cuda",
+    lock = "//tools/palace/source:cuda.lock",
+    deb_base = "https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2404/x86_64/",
+)
+
+locked_inputs(
+    name = "guvna_build_sources",
+    lock = "//tools/palace/source:deps/sources.lock.json",
+)

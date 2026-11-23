@@ -1,0 +1,13 @@
+http_archive = use_repo_rule("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
+
+# Palace v0.19.0. Use the published meshes, input decks and regression values together.
+PALACE_REV = "ca9a6a2d1e64a410229c3d7538507e5eae975cc6"
+
+http_archive(
+    name = "palace_examples",
+    build_file = "//examples:upstream.BUILD.bazel",
+    sha256 = "12eae73f5f6769e6420f137a10dad82daa1f773092701482892a821f687fa3f4",
+    strip_prefix = "palace-" + PALACE_REV,
+    type = "tar.gz",
+    urls = ["https://codeload.github.com/awslabs/palace/tar.gz/" + PALACE_REV],
+)
