@@ -114,3 +114,6 @@ bazel run //coupler:solve -- --refinement 1 --frequencies-ghz 11.25 11.5 11.75 -
 
 The two full sweep records on kratos are under `~/.local/state/guvna/coupler/{initial,refined}`.
 The changed-gap record is `gap035` under the same directory.
+
+The [Palace adaptivity study](adaptivity.md) compares solver-driven mesh refinement and adaptive
+frequency sampling on the 100 mm coupon, including a direct check at a newly resolved S21 dip.
