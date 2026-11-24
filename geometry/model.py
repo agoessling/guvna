@@ -7,6 +7,7 @@ from math import isfinite
 GROUPS = (
     (3, 1, "substrate"), (3, 2, "air"), (2, 10, "enclosure_pec"),
     (2, 11, "main_trace_pec"), (2, 12, "pickup_trace_pec"), (2, 13, "end_pmc"),
+    (2, 14, "ground_pec"),
     (2, 21, "port_1"), (2, 22, "port_2"), (2, 23, "port_3"), (2, 24, "port_4"),
 )
 

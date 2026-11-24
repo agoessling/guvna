@@ -70,7 +70,9 @@ def classify(model, dim, entity):
         return 13
     if any(abs(ym - wall) < eps for wall in (y[0], y[-1])):
         return 10
-    if any(abs(zm - wall) < eps for wall in (z[0], z[-1])):
+    if abs(zm - z[0]) < eps:
+        return 14
+    if abs(zm - z[-1]) < eps:
         return 10
     if abs(zm - d.substrate_height) < eps and abs(z1 - z0) < eps:
         if main:

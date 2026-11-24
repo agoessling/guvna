@@ -51,6 +51,8 @@ def validate(path, model):
             if face in surfaces:
                 raise ValueError(f"Duplicate boundary quad for tag {tag}")
             surfaces[face] = tag
+            if tag == 14 and any(abs(pt[2] - model.z_edges[0]) > 1e-8 for pt in pts):
+                raise ValueError("Ground quad outside the bottom plane")
             if tag in ports:
                 if any(not ports[tag].contains(*pt, tolerance=1e-8) for pt in pts):
                     raise ValueError(f"Port quad outside expected rectangle for tag {tag}")
@@ -68,7 +70,7 @@ def validate(path, model):
     targets = {
         1: width * d.length * d.substrate_height,
         2: width * d.length * d.lid_clearance,
-        10: 2 * d.length * (width + height),
+        10: d.length * (width + 2 * height), 14: d.length * width,
         11: d.length * d.width, 12: d.length * d.width,
         13: 2 * (width * height - 2 * sheet),
         21: sheet, 22: sheet, 23: sheet, 24: sheet,

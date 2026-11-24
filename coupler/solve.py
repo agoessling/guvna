@@ -36,6 +36,9 @@ def make_deck(geometry, frequencies, saved, order, tol):
         materials.append({"Attributes": [tag], "Permittivity": er,
                           "Permeability": 1.0, "LossTan": 0.0})
     pec = [groups[2, name] for name in ("enclosure_pec", "main_trace_pec", "pickup_trace_pec")]
+    # Archived coupon meshes include ground in enclosure_pec.
+    if (2, "ground_pec") in groups:
+        pec.append(groups[2, "ground_pec"])
     return {
         "Problem": {"Type": "Driven", "Verbose": 2, "Output": "postpro"},
         "Model": {"Mesh": "model.msh", "L0": 1e-3},

@@ -15,11 +15,16 @@ end treatment. A coupon with physical launches and wall openings will have diffe
 | Physical tag | Location | Role |
 | --- | --- | --- |
 | 1, 2 | Below and above traces | Substrate and air volumes |
-| 10 | Ground, lid, both y walls | Enclosure PEC |
+| 10 | Lid and both y walls | Enclosure PEC |
 | 11, 12 | Interface at z = 0.508 mm | Zero-thickness main and pickup PEC strips |
 | 13 | Both x ends except the port sheets | Natural magnetic boundary |
+| 14 | Bottom face at z = 0 | Ground plane PEC |
 | 21, 22 | Negative-y strip at x = 0 and 8 mm | Port 1 input and port 2 through |
 | 23, 24 | Positive-y strip at x = 0 and 8 mm | Port 3 near pickup and port 4 far pickup |
+
+The viewer shows **Ground plane** under **Conductors** by default. Choose **Bottom** to inspect
+its return current with the enclosure hidden. Runs created before the split store the ground, lid
+and side walls together under tag 10.
 
 Each rectangular port spans one trace width and connects vertically to ground. The integration
 direction is +z at all four ports. Port 3 is the candidate forward-coupled port for the

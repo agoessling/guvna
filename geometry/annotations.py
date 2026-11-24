@@ -6,6 +6,7 @@ _STYLES = {
     "substrate": ("Substrate", "Materials", "#59756a", True, False),
     "air": ("Air domain", "Materials", "#9ab6c9", False, True),
     "enclosure_pec": ("Enclosure walls", "Boundary conditions", "#76838d", False, True),
+    "ground_pec": ("Ground plane", "Conductors", "#b88b60", True, False),
     "main_trace_pec": ("Main trace", "Conductors", "#c68a58", True, False),
     "pickup_trace_pec": ("Pickup trace", "Conductors", "#c68a58", True, False),
     "end_pmc": ("End planes", "Boundary conditions", "#927faa", False, True),
