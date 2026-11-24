@@ -6,6 +6,7 @@
     <title>GuVNA · Model inspector</title>
     <link rel="icon" href="data:," />
     <link rel="stylesheet" href="/style.css" />
+    <link rel="stylesheet" href="/lib/uplot/uPlot.min.css" />
     <link rel="stylesheet" href="/results.css" />
     <script type="importmap">
       { "imports": { "three": "/lib/three.module.min.js" } }
@@ -192,8 +193,8 @@
           <span data-help="Field samples" id="plot-status"></span>
         </div>
         <div id="results-body">
-          <svg id="plot" role="slider" tabindex="0" aria-label="Port response frequency marker"
-               aria-orientation="horizontal"></svg>
+          <div id="plot" role="slider" tabindex="0" aria-label="Port response frequency marker"
+               aria-orientation="horizontal"></div>
           <div id="trace-list">
             <table aria-label="Port values at the marker">
               <thead><tr><th>Trace</th><th>dB</th><th>Phase (°)</th></tr></thead>

@@ -34,6 +34,10 @@ def handler_for(sources, rf):
         path = rf.Rlocation("cad_three/" + name, source_repo="")
         files["/lib/" + Path(name).name] = Path(path)
 
+    for name in ("dist/uPlot.esm.js", "dist/uPlot.min.css", "LICENSE"):
+        path = rf.Rlocation("uplot/" + name, source_repo="")
+        files["/lib/uplot/" + Path(name).name] = Path(path)
+
     cases = {source.id: source for source in sources}
     catalog = encode([source.summary() for source in sources])
     field_lock = Lock()

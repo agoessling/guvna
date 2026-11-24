@@ -13,7 +13,7 @@
 #results-body { display: flex; height: clamp(140px, 24vh, 255px); }
 #plot { width: 0; flex: 1; height: 100%; background: #fff; touch-action: manipulation; }
 #plot:focus-visible { outline: 2px solid #4084af; outline-offset: -2px; }
-#plot text { font: 10px var(--mono); fill: #4d606f; }
+#plot { overflow: hidden; }
 #trace-list { overflow: auto; width: clamp(170px, 22%, 270px); border-left: 1px solid #bcc9d1; }
 #trace-list table { width: 100%; border-collapse: collapse; font: 11px var(--mono); }
 #trace-list th, #trace-list td { text-align: right; border-bottom: 1px solid #dce3e8; }

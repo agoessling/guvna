@@ -78,9 +78,9 @@ The eye controls visibility across both **Geometry** and **Gmsh mesh**. Press **
 clear the selection. Curved, higher-order elements are displayed using their corner nodes.
 
 For a completed driven run with a Palace `port-S.csv`, the **Port response** dock plots the
-output traces for one excitation. Click the plot or use its arrow keys to move between frequency
-samples. Diamonds on the axis identify saved volume fields for that excitation. Selecting one
-updates the 3D layers in place and opens a field cut if no layer is active. A sample without a
+output traces for one excitation using uPlot, served locally. Click or use arrow keys to select
+frequency samples. Diamonds on the axis identify saved volume fields for that excitation. Selecting
+one updates the 3D layers in place and opens a field cut if no layer is active. A sample without a
 saved field still has port values in the table and clears the field overlay. Use the trace
 checkboxes to show or hide curves and click a trace name to inspect its marker values. Click
 **Port response** in the dock header to collapse the plot.

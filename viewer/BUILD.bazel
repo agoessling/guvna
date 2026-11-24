@@ -6,6 +6,9 @@ py_binary(
     srcs = ["fields.py", "inputs.py", "scene.py", "server.py", "sweep.py"],
     main = "server.py",
     data = glob(["ui/*"]) + [
+        "@uplot//:LICENSE",
+        "@uplot//:dist/uPlot.esm.js",
+        "@uplot//:dist/uPlot.min.css",
         "@cad_three//:LICENSE",
         "@cad_three//:build/three.core.min.js",
         "@cad_three//:build/three.module.min.js",

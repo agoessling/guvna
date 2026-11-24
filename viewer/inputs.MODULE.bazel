@@ -9,8 +9,8 @@ viewer_pip.parse(
 )
 use_repo(viewer_pip, "viewer_deps")
 
-cad_archive = use_repo_rule("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
-cad_archive(
+ui_archive = use_repo_rule("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
+ui_archive(
     name = "cad_three",
     urls = ["https://registry.npmjs.org/three/-/three-0.180.0.tgz"],
     sha256 = "ad66d724565ee29a2467277fa84daa5ed0211d6b8d446e9ef29f6bae0cd14144",
@@ -24,5 +24,15 @@ exports_files([
     "examples/jsm/controls/OrbitControls.js",
     "examples/jsm/environments/RoomEnvironment.js",
 ])
+""",
+)
+
+ui_archive(
+    name = "uplot",
+    urls = ["https://registry.npmjs.org/uplot/-/uplot-1.6.32.tgz"],
+    sha256 = "4b8a8191e425658e3ea8c8c1314b0fc679c861ee3a1af2b20c7b16ba50b5133d",
+    strip_prefix = "package",
+    build_file_content = """
+exports_files(["LICENSE", "dist/uPlot.esm.js", "dist/uPlot.min.css"])
 """,
 )

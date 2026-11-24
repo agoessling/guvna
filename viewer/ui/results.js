@@ -1,21 +1,10 @@
+import uPlot from '/lib/uplot/uPlot.esm.js';
+
 const el = id => document.getElementById(id);
 const colors = ['#176389', '#ac4f27', '#297556', '#764d99', '#91691d', '#4f6494'];
 const near = (a, b) => Math.abs(a - b) <= 1e-9 * Math.max(1, Math.abs(a), Math.abs(b));
 const label = t => 'S[' + t.port + ',' + t.drive + ']';
 const number = v => v === '-inf' ? '−∞' : v == null ? '—' : Number(v.toPrecision(6)).toString();
-
-function tickSpacing(range, count) {
-  const rough = range / count;
-  const unit = 10 ** Math.floor(Math.log10(rough));
-  return [1, 2, 5, 10].find(n => n * unit >= rough) * unit;
-}
-
-function svgNode(type, attributes, text) {
-  const node = document.createElementNS('http://www.w3.org/2000/svg', type);
-  for (const [key, value] of Object.entries(attributes)) node.setAttribute(key, value);
-  if (text != null) node.textContent = text;
-  return node;
-}
 
 export function resultsPanel(source, field, inspect) {
   const panel = el('results'), plot = el('plot'), body = el('results-body');
@@ -24,7 +13,7 @@ export function resultsPanel(source, field, inspect) {
   el('plot-status').prepend(status);
   const node = el('results-node'), lifetime = new AbortController();
   let traces = [], active = [], samples = [], saved = new Map(), index = 0;
-  let selection, inspecting = false, chartDomain;
+  let selection, inspecting = false, chart;
   const hidden = new Set();
   panel.hidden = node.parentElement.hidden = true;
   const controls = [drive, marker, quantity, el('dock-toggle')];
@@ -44,9 +33,16 @@ export function resultsPanel(source, field, inspect) {
     ]);
   }
 
+  function focusTrace(trace) {
+    selection = trace;
+    active.forEach((t, i) => {
+      if (chart) chart.series[i + 1].width = t === selection ? 2.5 : 1.5;
+    });
+  }
+
   function selectResult(trace) {
     inspecting = true;
-    selection = trace;
+    focusTrace(trace);
     node.classList.add('selected');
     render();
   }
@@ -59,73 +55,75 @@ export function resultsPanel(source, field, inspect) {
   el('dock-toggle').onclick = () => setOpen(body.hidden);
   node.onclick = () => { setOpen(true); selectResult(null); };
 
+  // These annotations link the library chart to the field frames available in this run.
+  function markFields(u) {
+    const ctx = u.ctx, box = u.bbox, ratio = uPlot.pxRatio;
+    const x = u.valToPos(frequency(), 'x', true);
+    if (!Number.isFinite(x)) return;
+    ctx.save();
+    ctx.strokeStyle = ctx.fillStyle = '#405a6e';
+    ctx.lineWidth = ratio;
+    ctx.setLineDash([3 * ratio, 3 * ratio]);
+    ctx.beginPath();
+    ctx.moveTo(x, box.top);
+    ctx.lineTo(x, box.top + box.height);
+    ctx.stroke();
+    for (const f of saved.keys()) {
+      const px = u.valToPos(f, 'x', true), py = box.top + box.height;
+      ctx.save();
+      ctx.translate(px, py);
+      ctx.rotate(Math.PI / 4);
+      ctx.fillRect(-2 * ratio, -2 * ratio, 4 * ratio, 4 * ratio);
+      ctx.restore();
+    }
+    ctx.restore();
+  }
+
+  function buildChart() {
+    chart?.destroy();
+    chart = null;
+    if (!samples.length || body.hidden || !plot.clientWidth) return;
+    const q = Number(quantity.value);
+    const values = active.map(trace => samples.map(f => {
+      const v = trace.points.get(f)?.[q];
+      return Number.isFinite(v) ? v : null;
+    }));
+    const series = active.map((trace, i) => ({
+      label: label(trace), stroke: trace.color, width: trace === selection ? 2.5 : 1.5,
+      show: !hidden.has(trace),
+      points: { show: samples.length <= 100, size: 4 },
+      gaps: (u, _series, first, last, gaps) => {
+        if (q === 2) {
+          for (let j = first + 1; j <= last; j++) {
+            const a = values[i][j - 1], b = values[i][j];
+            if (a != null && b != null && Math.abs(b - a) > 180) {
+              gaps.push([u.valToPos(samples[j - 1], 'x', true), u.valToPos(samples[j], 'x', true)]);
+            }
+          }
+          gaps.sort((a, b) => a[0] - b[0]);
+        }
+        return gaps;
+      },
+    }));
+    const axis = { font: '10px monospace', stroke: '#4d606f', grid: { stroke: '#d8e1e6' },
+      ticks: { size: 4, stroke: '#9caeb9' }, labelFont: '11px sans-serif', labelSize: 15 };
+    chart = new uPlot({
+      width: plot.clientWidth, height: plot.clientHeight,
+      legend: { show: false }, cursor: { show: false },
+      scales: { x: { time: false, range: (_u, lo, hi) =>
+        lo === hi ? [lo - 0.05, hi + 0.05] : [lo, hi] } },
+      axes: [{ ...axis, size: 25, label: 'Frequency (GHz)' },
+        { ...axis, size: 40, label: q === 1 ? 'Magnitude (dB)' : 'Phase (°)' }],
+      series: [{}, ...series], hooks: { draw: [markFields] },
+    }, [samples, ...values], plot);
+  }
+
   function draw() {
     if (panel.hidden || body.hidden || !samples.length) return;
-    const w = plot.clientWidth, h = plot.clientHeight;
-    const left = 55, right = w - 15, top = 20, bottom = h - 30;
-    if (right <= left || bottom <= top) return;
-    const first = samples[0], last = samples.at(-1), q = Number(quantity.value);
-    const x = f => first === last ? (left + right) / 2 :
-      left + (f - first) / (last - first) * (right - left);
-    chartDomain = { left, right, first, last };
-    let low = Infinity, high = -Infinity;
-    for (const trace of active) {
-      if (hidden.has(trace)) continue;
-      for (const point of trace.samples) {
-        if (!Number.isFinite(point[q])) continue;
-        low = Math.min(low, point[q]);
-        high = Math.max(high, point[q]);
-      }
-    }
-    if (!Number.isFinite(low)) { low = -1; high = 1; }
-    const step = tickSpacing(high - low || 2, 4);
-    low = Math.floor(low / step) * step;
-    high = Math.ceil(high / step) * step;
-    if (low === high) { low -= step; high += step; }
-    const y = v => bottom - (v - low) / (high - low) * (bottom - top);
-    const items = [];
-    const line = (x1, y1, x2, y2, stroke, extra = {}) =>
-      items.push(svgNode('line', { x1, x2, y1, y2, stroke, ...extra }));
-    const text = (x, y, value, anchor = 'start') =>
-      items.push(svgNode('text', { x, y, 'text-anchor': anchor }, value));
-    text(left, 13, q === 1 ? 'Magnitude (dB)' : 'Phase (°)');
-    text(right, h - 2, 'GHz', 'end');
-    for (let k = 0; k <= Math.round((high - low) / step); k++) {
-      const v = low + k * step, py = y(v);
-      line(left, py, right, py, '#d8e1e6');
-      text(left - 7, py + 3, number(v), 'end');
-    }
-    const ticks = Math.max(1, Math.min(10, Math.floor((right - left) / 70)));
-    const dx = tickSpacing(last - first || 1, ticks);
-    const tickStart = first === last ? first : Math.ceil(first / dx) * dx;
-    for (let i = 0; tickStart + i * dx <= last; i++) {
-      const v = tickStart + i * dx, px = x(v);
-      line(px, top, px, bottom, '#e2e8ec');
-      text(px, bottom + 16, String(Number(v.toPrecision(4))), 'middle');
-    }
-    for (const trace of active) {
-      if (hidden.has(trace)) continue;
-      let path = '', start = true, previous;
-      for (const [f, db, angle] of trace.samples) {
-        const value = q === 1 ? db : angle;
-        if (!Number.isFinite(value)) { start = true; continue; }
-        if (q === 2 && Math.abs(value - previous) > 180) start = true;
-        previous = value;
-        path += (start ? 'M' : 'L') + x(f) + ' ' + y(value);
-        start = false;
-        if (trace.samples.length <= 100 || f === frequency()) {
-          items.push(svgNode('circle', { cx: x(f), cy: y(value), r: 2.2, fill: trace.color }));
-        }
-      }
-      items.push(svgNode('path', { d: path, stroke: trace.color, fill: 'none',
-        'stroke-width': trace === selection ? 2.5 : 1.5 }));
-    }
-    for (const f of saved.keys()) {
-      items.push(svgNode('path', { d: 'M' + x(f) + ' ' + bottom + 'l3 3-3 3-3-3z',
-        fill: '#4c677a' }));
-    }
-    line(x(frequency()), top, x(frequency()), bottom, '#283f50', { 'stroke-dasharray': '3 3' });
-    plot.replaceChildren(...items);
+    if (!chart) { buildChart(); return; }
+    if (chart.width !== plot.clientWidth || chart.height !== plot.clientHeight) {
+      chart.setSize({ width: plot.clientWidth, height: plot.clientHeight });
+    } else chart.redraw(false);
   }
 
   function render() {
@@ -176,7 +174,7 @@ export function resultsPanel(source, field, inspect) {
       check.onchange = () => {
         if (check.checked) hidden.delete(trace);
         else hidden.add(trace);
-        draw();
+        chart?.setSeries(i + 1, { show: check.checked });
       };
       button.textContent = label(trace);
       button.title = 'Inspect ' + label(trace);
@@ -186,19 +184,18 @@ export function resultsPanel(source, field, inspect) {
       row.insertCell();
       trace.row = row;
     }
+    buildChart();
     render();
   }
 
   drive.onchange = () => { configureDrive(frequency()); choose(index); };
   marker.onchange = () => choose(marker.selectedIndex);
-  quantity.onchange = draw;
+  quantity.onchange = buildChart;
   plot.onclick = event => {
-    if (!chartDomain) return;
-    const { first, last, left, right } = chartDomain;
-    const px = event.clientX - plot.getBoundingClientRect().left;
-    const f = first + (px - left) * (last - first) / (right - left);
-    choose(samples.reduce((best, v, i) =>
-      Math.abs(v - f) < Math.abs(samples[best] - f) ? i : best, 0));
+    if (!chart) return;
+    const rect = chart.over.getBoundingClientRect();
+    if (event.clientY < rect.top || event.clientY > rect.bottom) return;
+    choose(chart.posToIdx(event.clientX - rect.left));
   };
   plot.onkeydown = event => {
     const keys = { ArrowLeft: index - 1, ArrowRight: index + 1, Home: 0, End: samples.length - 1 };
@@ -250,10 +247,10 @@ export function resultsPanel(source, field, inspect) {
     },
     deselect() {
       inspecting = false;
-      selection = null;
+      focusTrace(null);
       node.classList.remove('selected');
       if (active.length) render();
     },
-    dispose() { observer.disconnect(); lifetime.abort(); status.remove(); },
+    dispose() { chart?.destroy(); observer.disconnect(); lifetime.abort(); status.remove(); },
   };
 }
