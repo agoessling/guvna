@@ -3,7 +3,7 @@ load("@rules_python//python:py_test.bzl", "py_test")
 
 py_binary(
     name = "serve",
-    srcs = ["fields.py", "inputs.py", "scene.py", "server.py", "sweep.py"],
+    srcs = ["fields.py", "inputs.py", "scene.py", "server.py", "stages.py", "sweep.py"],
     main = "server.py",
     data = glob(["ui/*"]) + [
         "@uplot//:LICENSE",
@@ -69,4 +69,16 @@ py_test(
     name = "sweep_test",
     srcs = ["inputs.py", "sweep.py", "sweep_test.py"],
     python_version = "3.12",
+)
+
+py_test(
+    name = "stages_test",
+    srcs = ["fields.py", "inputs.py", "scene.py", "stages.py", "stages_test.py"],
+    python_version = "3.12",
+    deps = [
+        "//geometry:model",
+        "@viewer_deps//meshio",
+        "@viewer_deps//numpy",
+        "@viewer_deps//vtk",
+    ],
 )

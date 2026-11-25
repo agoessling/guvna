@@ -28,15 +28,15 @@ def child(folder, name, suffix):
     return path
 
 
-def snapshots(source):
-    if source.kind != "run":
+def snapshots(source, output=None):
+    if source.kind != "run" and output is None:
         return [], 1.0
-    deck_file = source.path / "palace.json"
+    deck_file = source.files().deck if source.kind == "case" else source.path / "palace.json"
     if not deck_file.exists():
         return [], 1.0
     deck = read_deck(deck_file)
     out = source.path / deck.get("Problem", {}).get("Output", "postpro")
-    root = out / "paraview"
+    root = (output or out) / "paraview"
     boundary = dict(series_files(root / "driven_boundary"))
     result = []
     for key, (pieces, names) in series_files(root / "driven"):
@@ -178,10 +178,20 @@ def face_key(cell):
     return tuple(sorted(coords.GetPoint(i) for i in range(cell.GetNumberOfEdges())))
 
 
+def cell_center(cell):
+    from vtkmodules.vtkCommonCore import reference
+
+    pcoords, point = [0.] * 3, [0.] * 3
+    sub = cell.GetParametricCenter(pcoords)
+    cell.EvaluateLocation(reference(sub), pcoords, point, [0.] * cell.GetNumberOfPoints())
+    return np.array(point)
+
+
 def surface(snapshot, scale, quantity, domain=None, component="magnitude"):
     """Return independent face samples, preserving each material's one-sided field."""
     from vtkmodules.util.numpy_support import vtk_to_numpy
     from vtkmodules.vtkCommonCore import vtkIdList
+    from vtkmodules.vtkCommonDataModel import vtkStaticCellLocator
 
     if quantity not in ("E", "J_s") or (quantity == "E" and domain is None):
         raise ValueError("Select surface current or the electric field of a material")
@@ -225,9 +235,14 @@ def surface(snapshot, scale, quantity, domain=None, component="magnitude"):
         # partitions before tessellation, without merging point fields at dielectric interfaces.
         skin = {}
         grids = []
+        locators = []
         for path in snapshot.pieces:
             data = grid(path, path.stat().st_mtime_ns)
             tags = attributes(data)
+            locator = vtkStaticCellLocator()
+            locator.SetDataSet(data)
+            locator.BuildLocator()
+            locators.append((locator, tags))
             part = len(grids)
             grids.append((data, field_values(data, quantity, component)))
             for i in np.flatnonzero(tags == domain):
@@ -240,5 +255,16 @@ def surface(snapshot, scale, quantity, domain=None, component="magnitude"):
                         skin[key] = (part, i, f)
         for key, (part, i, f) in skin.items():
             data, array = grids[part]
-            add_face(data.GetCell(i).GetFace(f), array, boundary_tags.get(key))
+            # AMR neighbours can meet along a coarse face and several smaller faces.
+            # Probe just beyond the face in native mesh units, including across MPI ranks.
+            cell = data.GetCell(i)
+            center = cell_center(cell)
+            mid = cell_center(cell.GetFace(f))
+            probe = mid + (mid - center) * 1e-4
+            for other, (locator, tags) in enumerate(locators):
+                hit = locator.FindCell(probe)
+                if hit >= 0 and (other != part or hit != i) and tags[hit] == domain:
+                    break
+            else:
+                add_face(data.GetCell(i).GetFace(f), array, boundary_tags.get(key))
     return dict(points=points, faces=faces, values=values, materials=materials)

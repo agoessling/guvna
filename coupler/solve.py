@@ -16,7 +16,8 @@ from results import validate_solver, write_json, write_touchstone
 
 PARAMETERS = ("length", "width", "gap", "substrate-height", "lid-clearance", "side-clearance",
               "relative-permittivity")
-CELLS = ("gap-cells", "length-cells", "substrate-cells", "strip-cells", "air-cells", "side-cells")
+CELLS = ("gap-cells", "length-cells", "substrate-cells", "strip-cells", "air-cells",
+         "side-cells", "edge-cells", "interface-cells")
 DEFAULT_GHZ = [0.5, 0.9, 2, 4, 6, 8, 10, 10.525, 11, 12]
 
 
@@ -57,7 +58,7 @@ def arguments():
     parser.add_argument("--generator", type=Path, required=True, help=argparse.SUPPRESS)
     parser.add_argument("--palace", type=Path, required=True, help=argparse.SUPPRESS)
     parser.add_argument("--output", type=Path, required=True, help="new directory for this run")
-    parser.add_argument("--refinement", type=int, choices=[0, 1], default=0)
+    parser.add_argument("--refinement", choices=("0", "1", "trace-edges"), default="0")
     parser.add_argument("--ranks", type=int, default=4)
     parser.add_argument("--order", type=int, choices=[1, 2, 3], default=2)
     parser.add_argument("--tolerance", type=float, default=1e-9, help="GMRES relative tolerance")
@@ -68,6 +69,8 @@ def arguments():
     for feature in CELLS:
         parser.add_argument("--" + feature, type=int, help="override the preset mesh cell count")
     args = parser.parse_args()
+    if args.refinement.isdigit():
+        args.refinement = int(args.refinement)
     if args.ranks < 1 or not 0 < args.tolerance < 1:
         parser.error("positive MPI rank count and tolerance between 0 and 1 required")
     for values in (args.frequencies_ghz, args.save_ghz):

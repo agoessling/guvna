@@ -1,4 +1,5 @@
 """Optional inspection annotations for the coupled-microstrip geometry producer."""
+from .mesh_policy import MeshPolicy
 from .model import CoupledMicrostrip, Dimensions
 
 
@@ -13,26 +14,35 @@ _STYLES = {
 }
 
 
-def sizing_regions(model, mesh):
-    d, y, z = model.dimensions, model.y_edges, model.z_edges
-    ny, nz = mesh["y_intervals"], mesh["z_intervals"]
+def sizing_regions(model, mesh, policy=None):
+    if policy is None:
+        # Reconstruct the sizing rules when reading a sidecar without its original policy.
+        ny, nz = mesh["y_intervals"], mesh["z_intervals"]
+        middle = len(ny) // 2
+        policy = MeshPolicy(length_cells=mesh["x_intervals"], side_cells=ny[0],
+                            strip_cells=ny[middle - 1], gap_cells=ny[middle],
+                            substrate_cells=nz[0], air_cells=nz[-1],
+                            edge_cells=ny[1] if len(ny) == 7 else 0,
+                            interface_cells=nz[1] if len(nz) == 4 else 0)
+    y, across, z, up = policy.cross_section(model)
+    length = model.dimensions.length
+    regions = {}
+    for axis, bounds, spans in (("Y", y, across), ("Z", z, up)):
+        for lo, hi, (name, count, ratio) in zip(bounds[:-1], bounds[1:], spans, strict=True):
+            rule = "Transfinite" if ratio == 1 else "Graded transfinite"
+            region = regions.setdefault(name, dict(name=name, axis=axis, intervals=count,
+                                                   boxes=[], rule=rule))
+            if axis == "Y":
+                box = [0, lo, z[0], length, hi, z[-1]]
+            else:
+                box = [0, y[0], lo, length, y[-1], hi]
+            region["boxes"].append(box)
+    extrusion = dict(name="Extrusion length", axis="X", intervals=policy.length_cells,
+                     boxes=[[0, y[0], z[0], length, y[-1], z[-1]]], rule="Extruded layers")
+    return [regions.pop("Coupling gap"), regions.pop("Trace widths"), *regions.values(), extrusion]
 
-    def box(left, right, bottom=z[0], top=z[-1]):
-        return [0, left, bottom, d.length, right, top]
 
-    entries = [
-        ("Coupling gap", "Y", ny[2], [box(y[2], y[3])], "Transfinite"),
-        ("Trace widths", "Y", ny[1], [box(y[1], y[2]), box(y[3], y[4])], "Transfinite"),
-        ("Side clearances", "Y", ny[0], [box(y[0], y[1]), box(y[4], y[5])], "Graded transfinite"),
-        ("Substrate depth", "Z", nz[0], [box(y[0], y[-1], z[0], z[1])], "Transfinite"),
-        ("Air clearance", "Z", nz[1], [box(y[0], y[-1], z[1], z[2])], "Graded transfinite"),
-        ("Extrusion length", "X", mesh["x_intervals"], [box(y[0], y[-1])], "Extruded layers"),
-    ]
-    return [{"name": name, "axis": axis, "intervals": count, "boxes": boxes, "rule": rule}
-            for name, axis, count, boxes, rule in entries]
-
-
-def annotate_coupon(meta, model):
+def annotate_coupon(meta, model, policy=None):
     """Keep raw Gmsh physical names for the solver and add display labels for generic consumers."""
     by_tag = {p["tag"]: p for p in meta.get("ports", [])}
     roles = {"forward-coupled": "near-end pickup", "isolated": "far-end pickup"}
@@ -60,7 +70,7 @@ def annotate_coupon(meta, model):
               "side_clearance": "Side clearance"}
     props = {label: f"{dims[key]:g} mm" for key, label in labels.items()}
     return {**meta, "physical_groups": groups, "properties": props,
-            "regions": sizing_regions(model, meta["mesh"])}
+            "regions": sizing_regions(model, meta["mesh"], policy)}
 
 
 def upgrade_archived_coupon(meta):

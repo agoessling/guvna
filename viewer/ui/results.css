@@ -6,6 +6,8 @@
 }
 #results-bar label { display: inline-flex; align-items: center; gap: 4px; }
 #results-bar select { height: 22px; padding-inline: 4px; }
+#plot-reference { max-width: 15em; }
+#reference-status:empty { display: none; }
 #dock-toggle { border: 0; background: transparent; font-weight: 650; padding: 0 4px; }
 #dock-toggle::before { content: '▾'; margin-right: 5px; }
 #dock-toggle[aria-expanded=false]::before { content: '▸'; }

@@ -1,4 +1,5 @@
 import * as T from 'three';
+import { featureEdges } from './outlines.js';
 import { facesByCorners, sectionCells } from './section.js';
 import { OrbitControls } from '/lib/OrbitControls.js';
 import { RoomEnvironment } from '/lib/RoomEnvironment.js';
@@ -33,7 +34,7 @@ function skin(group) {
   return group.dimension === 2 ? sheets : [...boundary.values()];
 }
 
-function block(faces, positions, material, meshMode) {
+function block(faces, positions, material, meshMode, refined) {
   const idx = [],
     edges = [],
     seen = new Set();
@@ -56,10 +57,11 @@ function block(faces, positions, material, meshMode) {
   geom.setIndex(idx);
   const solid = new T.Mesh(geom, material);
   // Shader flat shading uses the face derivatives, preserving sharp CAD corners.
-  const lines = meshMode ? new T.BufferGeometry() : new T.EdgesGeometry(geom, 12);
-  if (meshMode) {
+  const explicitEdges = meshMode || refined;
+  const lines = explicitEdges ? new T.BufferGeometry() : new T.EdgesGeometry(geom, 12);
+  if (explicitEdges) {
     lines.setAttribute('position', positions);
-    lines.setIndex(edges);
+    lines.setIndex(meshMode ? edges : featureEdges(faces, positions, 12));
   }
   const pen = new T.LineBasicMaterial({
     color: meshMode ? 0x263643 : 0x3c413f,
@@ -69,6 +71,26 @@ function block(faces, positions, material, meshMode) {
   });
   solid.add(new T.LineSegments(lines, pen));
   return solid;
+}
+
+// A sizing band follows the same piecewise-linear stations as the hexahedral mesh.
+function sweptRegion({ sections, z: [bottom, top] }) {
+  const positions = [], indices = [0, 2, 1, 0, 3, 2];
+  for (const [x, lo, hi] of sections) {
+    const base = positions.length / 3;
+    positions.push(x, lo, bottom, x, hi, bottom, x, hi, top, x, lo, top);
+    if (!base) continue;
+    for (let i = 0; i < 4; i++) {
+      const a = base - 4 + i, b = base - 4 + (i + 1) % 4;
+      indices.push(a, b, b + 4, a, b + 4, a + 4);
+    }
+  }
+  const last = positions.length / 3 - 4;
+  indices.push(last, last + 1, last + 2, last, last + 2, last + 3);
+  const geometry = new T.BufferGeometry();
+  geometry.setAttribute('position', new T.Float32BufferAttribute(positions, 3));
+  geometry.setIndex(indices);
+  return geometry;
 }
 
 function disposeMesh(root) {
@@ -146,7 +168,7 @@ function makePlaneWidget() {
 }
 
 export class Viewport {
-  constructor(canvas, data, onPick, onMovePlane) {
+  constructor(canvas, data, onPick, onMovePlane, meshMode = false) {
     this.scale = document.getElementById('scale');
     this.canvas = canvas;
     this.data = data;
@@ -181,7 +203,7 @@ export class Viewport {
     const fill = new T.PointLight(0xfff5e7, 1.6 * this.span ** 2);
     fill.position.set(0.65, 0.38, 0.7).multiplyScalar(this.span).add(this.center);
     this.scene.add(fill);
-    this.positions = new T.Float32BufferAttribute(data.points.flat(), 3);
+
     this.grid = new T.GridHelper(this.span * 2, 40, 0x8f989e, 0xaab1b6);
     this.grid.rotation.x = Math.PI / 2;
     this.grid.position.copy(this.center);
@@ -191,18 +213,7 @@ export class Viewport {
     this.grid.material.depthWrite = false;
     this.scene.add(this.grid);
     this.models = new Map();
-    this.volumeBounds = new Map();
-    for (const group of data.groups.filter((g) => g.dimension === 3)) {
-      const bounds = Array.from({ length: 3 }, () => [Infinity, -Infinity]);
-      for (const cell of group.cells)
-        for (const id of cell) {
-          data.points[id].forEach((p, axis) => {
-            bounds[axis][0] = Math.min(p, bounds[axis][0]);
-            bounds[axis][1] = Math.max(p, bounds[axis][1]);
-          });
-        }
-      this.volumeBounds.set(group.key, bounds);
-    }
+    this.setMesh(data);
     this.planeWidget = makePlaneWidget();
     this.scene.add(this.planeWidget);
     this.regions = data.regions.map((r, i) => this.region(r, i));
@@ -220,7 +231,7 @@ export class Viewport {
     this.selectionMark.visible = false;
     this.scene.add(this.selectionMark);
     this.pending = false;
-    this.meshMode = false;
+    this.meshMode = meshMode;
     this.projection('ortho');
     this.snap('Iso');
     this.fit();
@@ -312,8 +323,12 @@ export class Viewport {
   region(r, i) {
     const group = new T.Group(),
       tint = regionColor(i);
-    for (const [x, y, z, X, Y, Z] of r.boxes) {
-      const g = new T.BoxGeometry(X - x, Y - y, Z - z);
+    const shapes = (r.sweeps || []).map(sweptRegion);
+    for (const [x, y, z, X, Y, Z] of r.boxes || []) {
+      shapes.push(new T.BoxGeometry(X - x, Y - y, Z - z)
+        .translate((X + x) / 2, (Y + y) / 2, (Z + z) / 2));
+    }
+    for (const g of shapes) {
       const m = new T.MeshBasicMaterial({
         color: tint,
         transparent: true,
@@ -321,7 +336,6 @@ export class Viewport {
         depthWrite: false,
       });
       const cube = new T.Mesh(g, m);
-      cube.position.set((X + x) / 2, (Y + y) / 2, (Z + z) / 2);
       cube.add(
         new T.LineSegments(new T.EdgesGeometry(g), new T.LineBasicMaterial({ color: tint })),
       );
@@ -330,6 +344,23 @@ export class Viewport {
     group.visible = false;
     this.scene.add(group);
     return group;
+  }
+
+  setMesh(data) {
+    this.data = data;
+    this.positions = new T.Float32BufferAttribute(data.points.flat(), 3);
+    this.volumeBounds = new Map();
+    for (const group of data.groups.filter((g) => g.dimension === 3)) {
+      const bounds = Array.from({ length: 3 }, () => [Infinity, -Infinity]);
+      for (const cell of group.cells)
+        for (const id of cell) {
+          data.points[id].forEach((p, axis) => {
+            bounds[axis][0] = Math.min(p, bounds[axis][0]);
+            bounds[axis][1] = Math.max(p, bounds[axis][1]);
+          });
+        }
+      this.volumeBounds.set(group.key, bounds);
+    }
   }
 
   rebuild() {
@@ -355,8 +386,8 @@ export class Viewport {
         polygonOffsetFactor: volume ? 4 : 2,
         polygonOffsetUnits: volume ? 4 : 2,
       });
-      const faces = skin(g);
-      const obj = block(faces, this.positions, material, this.meshMode);
+      const faces = g.skin ?? skin(g);
+      const obj = block(faces, this.positions, material, this.meshMode, this.data.refined);
       obj.userData.tag = g.key;
       obj.userData.sheet = !volume;
       if (translucent) obj.children[0].material.opacity = this.meshMode ? 0.24 : 0.42;
@@ -435,7 +466,7 @@ export class Viewport {
       const material = parent.material.clone();
       material.clippingPlanes = null;
       const positions = new T.Float32BufferAttribute(section.vertices.flat(), 3);
-      const cap = block(section.faces, positions, material, this.meshMode);
+      const cap = block(section.faces, positions, material, this.meshMode, this.data.refined);
       cap.userData.tag = key;
       cap.children[0].material.opacity = parent.children[0].material.opacity;
       parent.add(cap);

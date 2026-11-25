@@ -1,5 +1,8 @@
 # Four-port coupled-line simulation
 
+The [wideband coupler literature review](literature.md) compares candidate geometries, measured
+directivity, and alternatives for the VNA test port.
+
 Run from the checkout on Linux x86-64 with the source-built CPU Palace toolchain. Choose a fresh
 output directory. The sample frequencies range from 0.5 to 12 GHz and include 10.525 GHz. The
 workflow saves the electric and magnetic fields at 6 and 10.525 GHz for each excitation.
@@ -15,7 +18,9 @@ frequency must occur in the sweep. `--order` selects the finite-element polynomi
 `--tolerance` the GMRES relative tolerance and `--ranks` the MPI process count. The defaults are
 order two, 1e-9 and four MPI ranks with one OpenMP thread each. Set `--gap-cells`,
 `--length-cells`, `--substrate-cells`, `--strip-cells`, `--air-cells`, or `--side-cells`
-to override individual mesh counts in either refinement preset.
+to override individual mesh counts. The `trace-edges` preset also takes `--edge-cells` and
+`--interface-cells` for the outer strip edges and trace-plane layers.
+[Regional mesh study](../geometry/README.md#trace-edge-refinement-study)
 
 Override `--gap`, `--length`, `--width`, `--substrate-height`, `--lid-clearance`, or
 `--side-clearance` in mm, or use `--relative-permittivity` for the substrate. For example, this
@@ -117,3 +122,104 @@ The changed-gap record is `gap035` under the same directory.
 
 The [Palace adaptivity study](adaptivity.md) compares solver-driven mesh refinement and adaptive
 frequency sampling on the 100 mm coupon, including a direct check at a newly resolved S21 dip.
+
+## Taper design history
+
+Run a sequence of field solves on an SM89 GPU and inspect results as they finish. The viewer can
+run in a separate terminal. Use its **Design history** link to see the measured tradeoffs, open a
+mesh and select saved fields. Each design's port response overlays its parent by default.
+
+```sh
+study="$HOME/.local/state/guvna/coupler/design-history"
+mkdir -p "$study"
+bazel run //coupler:design_study -- "$study" --continuous
+bazel run //viewer:serve -- --history "$study"
+```
+
+The initial study compares the uniform 100 mm control, a linear gap taper, dielectric filling above
+the traces, and a narrower embedded pair. Subsequent sweeps use the best completed screen as the
+parent and vary input gap, taper exponent, trace width and section length. The gap follows
+`g(x) = g_in + (g_out - g_in) (x/L)^p`. Each x plane of the validated structured Gmsh mesh is
+warped monotonically in y. Both equal-width traces can taper together using the same normalized
+profile as the gap. The enclosure walls stay fixed and each lumped port spans its local trace
+width. The first width trial widens from 0.725 to 0.855 mm. A constant 0.790 mm pair provides an
+equal-mean-width control. Both trials use their parent's gap, length, materials and mesh policy.
+Run `bazel run //coupler:modal_width` to estimate the width giving √(Ze Zo) = 50 Ω at each
+cross-section of the homogeneous, dielectric-covered coupon. The calculation uses even and odd
+electrostatic strip charge in its grounded rectangular enclosure. Palace includes the transitions,
+lumped ports and propagation along the complete taper.
+In the model browser, toggle **Facing trace edges** to inspect the two sizing bands inside the gap.
+**Gap interior** and **Outer trace edges** have their own eyes.
+
+Each facing band has two lateral intervals capped at 0.055 mm. Intervals toward the middle can
+grow by up to 1.5× per cell to a maximum of 0.22 mm. The widest section sets the structured
+interval count. Cells compress where the traces approach. Swept overlays follow the mesh stations.
+For an archive made with the old four-cell gap, the worker repeats its best screening geometry on
+the new policy and a second mesh with halved pitch caps. Later design rankings use the new policy.
+The old geometry, mesh and port response remain available as the comparison parent.
+
+All screens use the same 100 output frequencies from 0.5 to 12 GHz, one port-1 excitation, a
+50 Ω reference at each PCB end and saved volume and boundary fields at the band edges. The
+underlying model uses lossless dielectrics and PEC conductors. The covered pair has an upper
+grounded lid and the same bottom-referenced lumped ports as the air-filled control. The exponent
+defines a trial profile. Coupling flatness and directivity are measured from the resulting solve.
+
+For ranking, the provisional score is the larger of the maximum absolute coupling error from 20 dB
+and the worst directivity shortfall below 30 dB. Both use dB at the sampled frequencies. Match
+and through loss are reported separately. The best candidate gets a second solve with twice as
+many longitudinal cells and a full direct solve at every output frequency. Narrow extrema can
+fall between samples.
+
+With `--continuous`, the worker then perturbs two dimensions of the best screening design at a
+time. Every fourth proposal also explores the wider parameter range and upper dielectric. Each
+finished directory contains the sampled complex port response (magnitude and phase), Palace deck,
+field data, mesh, solver log and `design.json` with its parent, parameters, metrics and wall time.
+The history page refreshes every ten seconds. Completed directories are published by atomic rename.
+
+Create `"$study/PAUSE"` to stop after the current solve. Remove it and repeat the same command to
+resume. Completed designs are reused in sequence. Interrupted attempts remain in hidden directories
+for diagnosis. The worker also stops between runs below 24 GiB free by default
+(`--reserve-gib`).
+
+### COBYQA width and gap optimization
+
+Start the bounded optimizer when the GPU study worker has released its lock. The same command
+resumes an interrupted experiment from the archived seed, pinned SciPy version and completed
+evaluations. Both workers honor the same PAUSE marker and free-space reserve.
+
+```sh
+bazel run //coupler:optimize -- "$study" --budget 30
+```
+
+The best eligible full-band screen on the facing-edge mesh seeds the experiment. Start and end
+gap vary within 0.10–0.80 and 1.40–3.40 mm. Mean width varies within 0.60–1.15 mm and end width
+minus start width within ±0.40 mm. Length, taper exponent, stackup and mesh policy follow the seed.
+COBYQA works in normalized dimensions. At every output frequency the auxiliary objective in dB
+must cover the absolute coupling error and the directivity shortfall. Requests differing only in
+that auxiliary variable reuse a single physical sweep. Ranking uses the actual measured score.
+
+The history lists every completed evaluation, including regressions. Evaluation number gives solve
+order. Generation is depth from the seed (generation 0). The parent is the best measured design
+available before that trial and provides the comparison overlay. Multiple proposals can share one
+parent. The progress plot starts at the common seed and accumulates screen wall time separately
+for each search method on the current mesh policy. Checks and legacy uniform-gap screens are
+excluded. At completion the worker solves the seed and winner directly with halved gap pitch caps
+on one shared grid around both designs' limiting coupling and directivity samples. These spot
+checks have their own history entries. The starting configuration is in `cobyqa-plan.json` and
+the outcome, timing and validation references are in `cobyqa-result.json`. If libCEED aborts with
+its borrowed-device-array error or the GPU direct check raises SIGFPE, the optimizer archives the
+attempt and repeats that case on four CPU ranks. History identifies the completing device and
+includes retry time in the run cost.
+
+Use `--mesh gap8` to run a separate eight-cell screening campaign with the same 100-point sweep:
+
+```sh
+bazel run //coupler:optimize -- "$study" --mesh gap8 --budget 30
+```
+
+The worker re-solves the starting geometry before ranking candidates. Four cells span each
+half-gap. From the copper edge inward their pitch caps are 0.11, 0.22, 0.33 and 0.44 mm for a
+2.2 mm outlet. Wider gaps expand the three interior caps in proportion. The worker records
+the caps, seed, parent, device and wall time. The `cobyqa-gap8` prefix identifies this campaign.
+The history shows median and range across completed eight-cell candidate screens. Seed and
+validation times appear in their own rows. Both campaigns use the same finer validation policy.

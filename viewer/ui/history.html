@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Design history · GuVNA</title>
+  <link rel="stylesheet" href="/style.css">
+  <link rel="stylesheet" href="/lib/uplot/uPlot.min.css">
+  <script type="module" src="/history.js"></script>
+</head>
+<body id="history-page">
+  <header><strong>GuVNA</strong><a href="/">Inspector</a><b>Design history</b></header>
+  <section aria-label="Completed simulations">
+    <div id="progress-plot" hidden aria-label="Best measured target miss by elapsed run time"></div>
+    <table id="design-table">
+      <caption>Port 1 drive · 50 Ω · extrema over the frequencies sampled in each run</caption>
+      <thead><tr>
+        <th>Design</th><th>Parent</th>
+        <th title="Evaluation order and parent depth from the optimizer seed">Eval / Gen</th>
+        <th>Change</th><th>Gap mesh</th><th>Sampling</th>
+        <th>Coupling loss<br>range (dB)</th>
+        <th>Min directivity<br>(dB)</th><th>Worst D<br>(GHz)</th>
+        <th>Min return loss<br>(dB)</th><th>Max through loss<br>(dB)</th>
+        <th>Target miss<br>(dB)</th><th>Time<br>(min)</th>
+      </tr></thead>
+      <tbody></tbody>
+    </table>
+    <p>Target miss is the larger of the worst coupling error from 20 dB and the worst directivity
+      shortfall below 30 dB. Lower is better.</p>
+    <output role="status">Loading designs…</output>
+  </section>
+</body>
+</html>

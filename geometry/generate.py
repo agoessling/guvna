@@ -16,31 +16,29 @@ from .validate import validate
 def cross_section(model, policy):
     """Shared points and curves make all adjacent volumes and internal strip sheets conforming."""
     geo = gmsh.model.geo
-    y, z = model.y_edges, model.z_edges
+    y, across_spans, z, up_spans = policy.cross_section(model)
     # Interval counts, first along y and then along z; keep all four port planes identical.
-    ny, nz, nx = policy.y_intervals, policy.z_intervals, policy.length_cells
+    nx = policy.length_cells
     points = [[geo.addPoint(0, yi, zi) for yi in y] for zi in z]
     across = []
     for row in points:
         edges = []
-        for j, count in enumerate(ny):
+        for j, (_, count, ratio) in enumerate(across_spans):
             line = geo.addLine(row[j], row[j + 1])
-            # Cluster exterior y cells toward the nearest trace edge.
-            ratio = 1 / 1.32 if j == 0 else 1.32 if j == len(ny) - 1 else 1.0
             geo.mesh.setTransfiniteCurve(line, count + 1, "Progression", ratio)
             edges.append(line)
         across.append(edges)
     up = []
-    for k, count in enumerate(nz):
+    for k, (_, count, ratio) in enumerate(up_spans):
         edges = []
         for j in range(len(y)):
             line = geo.addLine(points[k][j], points[k + 1][j])
-            geo.mesh.setTransfiniteCurve(line, count + 1, "Progression", 1.35 if k else 1.0)
+            geo.mesh.setTransfiniteCurve(line, count + 1, "Progression", ratio)
             edges.append(line)
         up.append(edges)
     rectangles = []
-    for k in range(len(nz)):
-        for j in range(len(ny)):
+    for k in range(len(up_spans)):
+        for j in range(len(across_spans)):
             loop = geo.addCurveLoop([across[k][j], up[k][j + 1], -across[k + 1][j], -up[k][j]])
             face = geo.addPlaneSurface([loop])
             geo.mesh.setTransfiniteSurface(face)
@@ -48,7 +46,8 @@ def cross_section(model, policy):
             rectangles.append((2, face))
     geo.extrude(rectangles, model.dimensions.length, 0, 0, [nx], [], True)
     geo.synchronize()
-    return {"x_intervals": nx, "y_intervals": ny, "z_intervals": nz}
+    return {"x_intervals": nx, "y_intervals": [n for _, n, _ in across_spans],
+            "z_intervals": [n for _, n, _ in up_spans]}
 
 
 def classify(model, dim, entity):
@@ -83,7 +82,7 @@ def classify(model, dim, entity):
 
 
 def generate(model, level, destination, policy=None):
-    default = MeshPolicy.preset(level)
+    default = MeshPolicy.preset(level, model.dimensions.length)
     if policy is None:
         policy = default
     destination.mkdir(parents=True, exist_ok=True)
@@ -117,7 +116,7 @@ def generate(model, level, destination, policy=None):
         metadata = model.metadata()
         metadata["mesh_file"] = "model.msh"
         metadata["mesh"] = mesh
-        metadata = annotate_coupon(metadata, model)
+        metadata = annotate_coupon(metadata, model, policy)
         (tmp / "geometry.json").write_text(json.dumps(metadata, indent=2) + "\n")
         for filename in ("model.msh", "geometry.json"):
             (tmp / filename).replace(destination / filename)
@@ -127,7 +126,7 @@ def main():
     defaults = Dimensions()
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--output", type=Path, required=True)
-    parser.add_argument("--refinement", type=int, choices=(0, 1), default=0)
+    parser.add_argument("--refinement", choices=("0", "1", "trace-edges"), default="0")
     for key in asdict(MeshPolicy()):
         parser.add_argument("--" + key.replace("_", "-"), type=int, metavar="N",
                             help="Override the preset interval count for this feature")
@@ -137,13 +136,14 @@ def main():
     args = parser.parse_args()
     dimensions = Dimensions(**{key: getattr(args, key) for key in asdict(defaults)})
     model = CoupledMicrostrip(dimensions, args.relative_permittivity)
-    policy = MeshPolicy.preset(args.refinement)
+    level = int(args.refinement) if args.refinement.isdigit() else args.refinement
+    policy = MeshPolicy.preset(level, dimensions.length)
     overrides = {k: getattr(args, k) for k in asdict(policy) if getattr(args, k) is not None}
     try:
         policy = replace(policy, **overrides)
     except ValueError as error:
         parser.error(str(error))
-    generate(model, args.refinement, args.output, policy)
+    generate(model, level, args.output, policy)
 
 
 if __name__ == "__main__":

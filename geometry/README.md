@@ -33,7 +33,7 @@ The model omits feed-line transitions, finite copper thickness, surface roughnes
 
 ## Mesh
 
-From the checkout, generate either resolution with Bazel. Each output directory receives an
+From the checkout, generate the standard resolutions with Bazel. Each output directory receives an
 ASCII Gmsh 2.2 model.msh and geometry.json with the dimensions, port map, physical groups and
 mesh counts. The geometry uses the Gmsh Python API. Bazel fetches Gmsh 4.15.2, CPython 3.13
 and shared libraries pinned by SHA-256 for Linux x86-64. A display and a system Gmsh install
@@ -60,7 +60,7 @@ sets the finite-element approximation order.
 
 Use `--length`, `--width`, `--gap`, `--substrate-height`, `--lid-clearance`, and
 `--side-clearance` to override the dimensions in millimetres. Use `--relative-permittivity`
-to change the substrate dielectric constant. Mesh interval counts stay fixed at each level as
+to change the substrate dielectric constant. The counts for presets 0 and 1 stay fixed as
 dimensions change. Check convergence again when a sweep changes the dimensions substantially.
 
 For a targeted mesh check, change one feature while holding the geometry and other counts fixed.
@@ -86,3 +86,98 @@ boundary conditions and material parameters from the Palace deck.
 and mesh inputs without loading Gmsh. Each `PortSheet` defines an x-normal rectangular
 terminal with a ground height and a +z integration direction. The model, Gmsh entity selector
 and exported-mesh checks share the same terminal definitions.
+
+## Trace-edge refinement study
+
+The `trace-edges` preset comes from the saved Palace meshes for the 100 mm coupon and the
+100-point, 0.5–12 GHz port-1 sweep. Binning refinement-2 cell centres into the original Gmsh
+hexes gave 6,531 net added cells. Of those, 6,503 fell into the seven transverse columns
+from y = −1.702 to +1.702 mm in the two layers touching the strips (z = 0.254 to 0.987 mm).
+The finest cells occurred in the gap and immediately outside the outer strip edges, between
+z = 0.381 and 0.748 mm. Refinement extended along the coupon and favoured the driven strip.
+
+![Mesh cross sections through the same point on the coupon](trace-edge-mesh.png)
+
+The preset uses symmetric sizing on the two strips so it can be used for any port excitation.
+Each band edge is a Gmsh mesh line. The optional regions in the viewer show the same spans
+used to generate the mesh. The structured cross section extends each Y band through both
+materials and each Z band across the board. Palace can subdivide an individual hex locally.
+
+| Span | Extent on the 100 mm coupon | Default count | Cell size |
+| --- | --- | ---: | ---: |
+| Gap | Between the inner edges | 4 | 0.055 mm |
+| Outer trace edges | First 0.25 mm outside each strip | 2 per side | 0.125 mm |
+| Substrate at traces | First 0.127 mm below both strips | 2 | 0.0635 mm |
+| Air at traces | First 0.24 mm above both strips | 2 | 0.12 mm |
+| Propagation | Entire 100 mm length | 96 | 1.042 mm |
+
+The outer band spans one eighth of the side clearance and the air band spans 12% of the lid
+clearance, each capped at half the substrate thickness. The lower band spans one quarter of the
+substrate thickness. The extrusion uses 96 intervals per 100 mm, rounded up. Use
+`--length-cells` to study longitudinal resolution independently. The recorded Palace
+refinement-2 mesh had longitudinal pitches of 2.083, 1.042 and 0.521 mm.
+
+To vary only the lateral spacing outside the strips, generate independent meshes and inspect
+the regions and cuts in the viewer. Set `--edge-cells 0` to remove the outer bands, or
+`--interface-cells 0` to remove both trace-plane layers. When a band is present,
+`--side-cells`, `--substrate-cells` and `--air-cells` apply to the remaining spans.
+
+```sh
+study=$(mktemp -d)
+for n in 1 2 4; do
+  bazel run //geometry:generate -- --output "$study/edge-$n" --length 100 \
+    --refinement trace-edges --edge-cells "$n"
+done
+bazel run //viewer:serve -- --run "$study/edge-1" --run "$study/edge-2" --run "$study/edge-4"
+```
+
+The same controls pass through `//coupler:solve` for a four-port direct sweep. For example,
+repeat this command in fresh output directories with different `--edge-cells` values.
+
+```sh
+bazel run //coupler:solve -- --output "$study/solve-edge-2" --length 100 \
+  --refinement trace-edges --edge-cells 2 --frequencies-ghz 0.5 7.81818182 12 --save-ghz 12
+```
+
+### What changed in the solve
+
+Each fixed Gmsh mesh was solved on one GPU rank over the same 100 frequencies. The comparison
+uses Palace refinement 5 (67,201 cells) as a common reference. Maximum |ΔS| includes phase
+and takes the maximum across all four port-1 responses and all sampled frequencies.
+ΔD is the pointwise difference in raw directivity, using ports 3 and 4 for the pickups.
+
+| Mesh | Hexes | Max complex difference | Median absolute ΔD | Max absolute ΔD | Solve time |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| Palace refinement 2 | 9,171 | 0.04161 | 0.22 dB | 2.39 dB | — |
+| Gmsh, 48 along x, 1 per outer band | 8,640 | 0.01987 | 0.24 dB | 10.27 dB | 73 s |
+| Gmsh, 48 along x, 2 per outer band | 9,504 | 0.02009 | 0.22 dB | 17.71 dB | 83 s |
+| Gmsh, 96 along x, 2 per outer band | 19,008 | 0.01163 | 0.14 dB | 2.51 dB | 118 s |
+
+All three Gmsh meshes showed their largest directivity discrepancy at 7.818 GHz, where S31
+has a deep null. At 48 longitudinal intervals, refining only the outer bands deepened that null.
+At two cells per band, doubling the longitudinal count reduced the directivity discrepancy
+there by 15.19 dB. This motivated the 96-interval choice for the 100 mm preset. Comparing the
+chosen preset directly with Palace refinement 2, the median absolute directivity difference
+was 0.13 dB and the largest was 1.88 dB. The absolute depth of the null remains mesh-sensitive.
+
+### Replay the 100-point comparison
+
+Use a completed band-study deck for the same physical coupon. Its mesh filename is `model.msh`.
+The following runs keep the original frequency grid, adaptive frequency tolerance, port 1
+excitation and field saves. Each run uses its generated Gmsh mesh for the entire sweep.
+
+```sh
+reference="$HOME/.local/state/guvna/coupler/band-100pt-amr-through-ref5/palace.json"
+study=$(mktemp -d)
+bazel build //tools/palace/source:palace_gpu
+solver=$(realpath bazel-bin/tools/palace/source/palace_gpu)
+for settings in "48 2" "48 1" "96 2"; do
+  read -r nx edge <<< "$settings"
+  run="$study/x${nx}-edge${edge}"
+  bazel run //geometry:generate -- --output "$run" --length 100 \
+    --refinement trace-edges --length-cells "$nx" --edge-cells "$edge"
+  jq 'del(.Model.Refinement) | .Solver.Backend = "/gpu/cuda/shared"' \
+    "$reference" > "$run/palace.json"
+  (cd "$run" && OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 "$solver" -np 1 palace.json >solver.log)
+done
+```

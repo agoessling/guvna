@@ -1,6 +1,8 @@
 """Resolve explicit Palace decks and generated run directories for read-only inspection."""
 import argparse
 from dataclasses import dataclass
+import fcntl
+from functools import lru_cache
 import hashlib
 import json
 import os
@@ -125,6 +127,54 @@ def resolve_inputs(entries, cwd):
     return result
 
 
+@lru_cache(maxsize=2048)
+def _published_run(path, version):
+    source, = resolve_inputs([("run", path)], path.parent)
+    return source, read_deck(path / "design.json")
+
+
+def design_history(directory):
+    """Read atomically published study runs. Ignore in-progress and unrelated directories."""
+    published = []
+    for record in directory.glob("*/design.json"):
+        if record.parent.name.startswith("."):
+            continue
+        path = record.parent.resolve()
+        if path.parent != directory:
+            continue
+        stat = record.stat()
+        entry = _published_run(path, (stat.st_ino, stat.st_mtime_ns, stat.st_size))
+        published.append(entry)
+
+    def sequence(entry):
+        name = entry[0].name
+        number = name.partition("-")[0]
+        return int(number) if number.isdigit() else float("inf"), name
+
+    return sorted(published, key=sequence)
+
+
+def study_activity(directory):
+    """A live writer holds the advisory lock until it finishes or the process exits."""
+    try:
+        with (directory / ".study.lock").open() as lock:
+            try:
+                fcntl.flock(lock, fcntl.LOCK_SH | fcntl.LOCK_NB)
+            except BlockingIOError:
+                candidates = (p for p in directory.iterdir()
+                              if re.match(r"^\.(?:\d+-|cobyqa-)", p.name)
+                              and ".interrupted-" not in p.name and p.is_dir())
+                active = max(candidates, key=lambda p: p.stat().st_mtime_ns, default=None)
+                status = "Solving " + active.name[1:] if active else "Preparing next design"
+                pause = directory / "PAUSE"
+                if pause.is_file() and pause.read_text().strip() == "COBYQA queued":
+                    status += " · COBYQA queued"
+                return status
+    except FileNotFoundError:
+        return ""
+    return "Paused" if (directory / "PAUSE").exists() else "Worker stopped"
+
+
 class InputArgument(argparse.Action):
     def __call__(self, parser, namespace, values, option_string=None):
         entries = getattr(namespace, self.dest, None)
@@ -141,13 +191,18 @@ def arguments(argv=None):
     parser.add_argument("--run", metavar="DIR", dest="inputs", action=InputArgument, type=Path,
                         help="Palace or generated-geometry directory; may be repeated")
     parser.add_argument("--port", type=int, default=8765, help="loopback HTTP port (default 8765)")
+    parser.add_argument("--history", metavar="DIR", type=Path,
+                        help="discover completed design runs whenever the catalog is opened")
     args = parser.parse_args(argv)
-    if not args.inputs:
+    if not args.inputs and not args.history:
         parser.print_usage()
         print("  bazel run //viewer:serve -- --case path/to/model.json")
-        return [], args.port
+        return [], None, args.port
     try:
         cwd = os.environ.get("BUILD_WORKING_DIRECTORY", ".")
-        return resolve_inputs(args.inputs, cwd), args.port
+        history = (Path(cwd) / args.history).resolve() if args.history else None
+        if history and not history.is_dir():
+            raise ValueError(f"--history expects an existing directory: {history}")
+        return resolve_inputs(args.inputs or [], cwd), history, args.port
     except (ValueError, OSError) as error:
         parser.error(str(error))

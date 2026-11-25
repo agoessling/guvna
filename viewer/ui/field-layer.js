@@ -261,7 +261,7 @@ function phaseDial(view, electric) {
   return { pause, setPhase };
 }
 
-export function fieldLayer(view, data, source, enableCut, onFrame) {
+export function fieldLayer(view, data, query, enableCut, onFrame) {
   const cutButton = el('fields'), surfaces = el('surfaces'), options = el('surface-options');
   const drive = el('field-drive'), frequency = el('field-frequency');
   const cutDomain = el('field-domain'), skinDomain = el('skin-domain');
@@ -332,7 +332,7 @@ export function fieldLayer(view, data, source, enableCut, onFrame) {
     skinTarget.disabled = skinDomain.disabled = !skinOn.checked;
     skin.clip(view.cut);
     sheet.clip(view.cut);
-    const params = { case: source, frame: frequency.value };
+    const params = { ...query, frame: frequency.value };
     const eParams = { component: electric.component };
     const url = (path, args) => '/api/field-' + path + '?' +
       new URLSearchParams({ ...params, ...args });
@@ -391,7 +391,8 @@ export function fieldLayer(view, data, source, enableCut, onFrame) {
   update();
   const ready = (async () => {
     try {
-      const reply = await fetch('/api/fields?case=' + encodeURIComponent(source),
+      if (query.stage === 0) return;
+      const reply = await fetch('/api/fields?' + new URLSearchParams(query),
         { signal: lifetime.signal });
       const result = await reply.json();
       if (lifetime.signal.aborted) return;

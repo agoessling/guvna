@@ -6,14 +6,14 @@ import re
 from viewer.inputs import read_deck
 
 
-def sweep(source):
-    if source.kind != "run":
+def sweep(source, directory=None):
+    if source.kind != "run" and directory is None:
         return []
-    deck = source.path / "palace.json"
+    deck = source.path if source.kind == "case" else source.path / "palace.json"
     if not deck.is_file():
         return []
     output = read_deck(deck).get("Problem", {}).get("Output", "postpro")
-    path = source.path / output / "port-S.csv"
+    path = (directory or source.path / output) / "port-S.csv"
     if not path.is_file():
         return []
 

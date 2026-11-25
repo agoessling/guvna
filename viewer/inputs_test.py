@@ -8,7 +8,7 @@ import tempfile
 import unittest
 from unittest.mock import patch
 
-from viewer.inputs import arguments, read_deck, resolve_inputs
+from viewer.inputs import arguments, design_history, read_deck, resolve_inputs
 
 
 class InputsTest(unittest.TestCase):
@@ -35,7 +35,7 @@ class InputsTest(unittest.TestCase):
         alias = self.root / "alias"
         alias.symlink_to(a)
         with patch.dict(os.environ, BUILD_WORKING_DIRECTORY=str(self.root)):
-            items, _ = arguments(["--case", str(a), "--run", "middle", "--case", str(b),
+            items, _, _ = arguments(["--case", str(a), "--run", "middle", "--case", str(b),
                                   "--case", "alias"])
         self.assertEqual([i.path for i in items], [a, run, b])
         self.assertEqual([i.name for i in items], ["first/repeat/palace.json", "middle",
@@ -102,10 +102,20 @@ class InputsTest(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "geometry.json.*line 1"):
             run.files()
 
+    def test_history_only_and_late_publication(self):
+        sources, history, _ = arguments(["--history", str(self.root)])
+        self.assertEqual(sources, [])
+        folder = self.deck(".working").parent
+        (folder / "design.json").write_text('{"name":"one"}')
+        self.assertEqual(list(design_history(history)), [])
+        folder.rename(self.root / "one")
+        [(entry, record)] = design_history(history)
+        self.assertEqual((entry.name, record["name"]), ("one", "one"))
+
     def test_no_input_prints_usage_only(self):
         output = io.StringIO()
         with contextlib.redirect_stdout(output):
-            self.assertEqual(arguments([]), ([], 8765))
+            self.assertEqual(arguments([]), ([], None, 8765))
         self.assertIn("--case DECK", output.getvalue())
         self.assertIn("--run DIR", output.getvalue())
         self.assertIn("bazel run //viewer:serve -- --case", output.getvalue())

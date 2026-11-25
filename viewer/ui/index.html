@@ -25,9 +25,10 @@
         ☰
       </button>
       <select id="source" aria-label="Inspection source"></select>
+      <a id="history-link" href="/history.html" hidden>Design history</a>
       <div class="tools" role="group" aria-label="Display">
         <button id="geometry" aria-pressed="true">Geometry</button>
-        <button id="mesh" aria-pressed="false">Gmsh mesh</button>
+        <button id="mesh" aria-pressed="false">Mesh</button>
       </div>
       <div class="tools" role="group" aria-label="Navigation">
         <button id="orbit" aria-pressed="true" title="Drag to orbit">Orbit</button>
@@ -63,6 +64,15 @@
     <main>
       <aside id="sidebar" aria-label="Model browser">
         <div id="browser-pane">
+          <section id="stage-controls" aria-label="Mesh history" hidden>
+            <div class="heading" data-help="Mesh stage">Mesh stage</div>
+            <div class="setting">
+              <button id="stage-prev" aria-label="Previous mesh stage" title="Previous">◀</button>
+              <select id="stage" aria-label="Mesh stage"></select>
+              <button id="stage-next" aria-label="Next mesh stage" title="Next">▶</button>
+            </div>
+            <output id="stage-stats" role="status"></output>
+          </section>
           <section id="cut-controls" aria-label="Cut plane settings" hidden>
             <div class="heading" data-help="Cut plane">Cut plane</div>
             <div class="pair">
@@ -189,7 +199,21 @@
             <option value="1">Magnitude (dB)</option>
             <option value="2">Phase (°)</option>
           </select></label>
+          <label id="reference-control" hidden>
+            <span data-help="Stage comparison">Reference</span>
+            <select id="plot-reference"></select>
+          </label>
+          <label id="reference-stage-control" hidden>
+            Mesh <select id="reference-stage" aria-label="Reference mesh stage"></select>
+          </label>
+          <label id="compare-control" hidden>
+            Compare <select id="plot-compare">
+            <option value="off">Active only</option>
+            <option value="overlay">Overlay · dashed</option>
+            <option value="delta">|ΔS|</option>
+          </select></label>
           <label>Marker <select id="plot-marker"></select></label>
+          <output id="reference-status" role="status"></output>
           <span data-help="Field samples" id="plot-status"></span>
         </div>
         <div id="results-body">
@@ -197,7 +221,9 @@
                aria-orientation="horizontal"></div>
           <div id="trace-list">
             <table aria-label="Port values at the marker">
-              <thead><tr><th>Trace</th><th>dB</th><th>Phase (°)</th></tr></thead>
+              <thead><tr>
+                <th>Trace</th><th>dB</th><th>Phase (°)</th><th id="delta-head" hidden>|ΔS|</th>
+              </tr></thead>
               <tbody id="trace-values"></tbody>
             </table>
           </div>

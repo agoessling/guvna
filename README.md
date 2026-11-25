@@ -74,8 +74,20 @@ ssh -N -L 8765:127.0.0.1:8765 kratos
 ```
 
 Pick a face or tree row to see its physical tag, material or Palace boundary assignments.
-The eye controls visibility across both **Geometry** and **Gmsh mesh**. Press **Esc** to
+The eye controls visibility across both **Geometry** and **Mesh**. Press **Esc** to
 clear the selection. Curved, higher-order elements are displayed using their corner nodes.
+
+For a completed adaptive mesh run, **Mesh stage** steps through the Gmsh input, initial Palace
+solve and each available saved refinement. The camera, cut and group visibility stay in place.
+Cell counts and degrees of freedom come from the Palace report. The stage uses its saved volume
+and boundary connectivity for surfaces and cuts, with higher-order elements shown at their corners.
+Fields and port responses follow the selected solve. The raw input has geometry and mesh only.
+See the [coarse 100 mm example](coupler/adaptivity.md#inspect-three-refinements-in-the-browser).
+
+To view a study continued from a saved mesh, a run directory can include `mesh-stages.json`.
+Its `outputs` array lists Palace output directories in chronological order, relative to the run
+directory. Include each physical mesh once. The viewer numbers stages by that order and reads
+the fields, mesh statistics and S-parameters directly from the listed solver outputs.
 
 For a completed driven run with a Palace `port-S.csv`, the **Port response** dock plots the
 output traces for one excitation using uPlot, served locally. Click or use arrow keys to select
@@ -84,6 +96,14 @@ one updates the 3D layers in place and opens a field cut if no layer is active. 
 saved field still has port values in the table and clears the field overlay. Use the trace
 checkboxes to show or hide curves and click a trace name to inspect its marker values. Click
 **Port response** in the dock header to collapse the plot.
+
+In **Port response**, choose a **Reference** run to compare independent meshes. If it has saved
+Palace stages, choose the reference **Mesh** as well. **Previous mesh** follows the active
+stage when stepping through an adaptive run. **Overlay · dashed** adds the reference to the
+magnitude or phase plot. **|ΔS|** plots the absolute complex difference on a linear scale.
+Both comparisons use matching drive and output port numbers at shared frequency samples.
+The marker table includes |ΔS| for each matched trace.
+[100-point band study](coupler/adaptivity.md#compare-sweeps-across-mesh-stages)
 
 For a completed driven `--run`, **Field cut** overlays the electric field magnitude on the
 current section. The toolbar lists the drives and frequencies with saved volume fields. Click
@@ -100,7 +120,7 @@ material and select all its faces or a tagged boundary. The field comes from tha
 With **All material faces** selected, moving the **Cut plane** also colors the newly exposed face
 from the retained material's volume data. **Field cut** can extend that plot across other volumes,
 including air. Both electric-field plots share a V/m scale. Sheet current has its own A/m legend.
-**Geometry** shows visible group outlines over these colors. Switch to **Gmsh mesh** to see the
+**Geometry** shows visible group outlines over these colors. Switch to **Mesh** to see the
 input mesh edges on the same surfaces and section.
 
 A geometry generator can attach model properties, sizing boxes, or display labels using
@@ -112,7 +132,7 @@ populate the inspector.
 Enable **Cut plane** in the toolbar. Choose the X, Y, or Z normal and enter a position in model
 millimetres, or drag the blue arrow handle in the viewport. In a face-on view, drag upward
 to increase the coordinate. **Keep side** reverses the cut. Switching between **Geometry** and
-**Gmsh mesh** keeps the same plane. The mesh section shows where each cell meets it, including
+**Mesh** keeps the same plane. The mesh section shows where each cell meets it, including
 between node layers.
 
 Drag a model face, mesh face, or colored field slice to orbit around the point you grabbed.

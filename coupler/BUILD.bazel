@@ -1,4 +1,5 @@
 load("@rules_python//python:py_binary.bzl", "py_binary")
+load("@rules_python//python:py_test.bzl", "py_test")
 load("@rules_shell//shell:sh_binary.bzl", "sh_binary")
 load("@rules_shell//shell:sh_test.bzl", "sh_test")
 
@@ -28,4 +29,82 @@ sh_test(
 py_binary(
     name = "prepare_study",
     srcs = ["prepare_study.py"],
+)
+
+sh_binary(
+    name = "design_study",
+    srcs = ["design_study.py"],
+    args = [
+        "--generator",
+        "$(rootpath //geometry:generate)",
+        "--solver",
+        "$(rootpath //tools/palace/source:palace_gpu)",
+    ],
+    data = [
+        "results.py",
+        "solve.py",
+        "taper_mesh.py",
+        "//geometry:generate",
+        "//tools/palace/source:palace_gpu",
+    ],
+)
+
+sh_test(
+    name = "design_study_test",
+    size = "small",
+    srcs = ["design_study_test.py"],
+    args = ["$(rootpath //geometry:generate)"],
+    data = [
+        "design_study.py",
+        "results.py",
+        "solve.py",
+        "taper_mesh.py",
+        "//geometry:generate",
+    ],
+)
+
+py_binary(
+    name = "modal_width",
+    srcs = ["modal_width.py"],
+    python_version = "3.12",
+    deps = ["@viewer_deps//numpy"],
+)
+
+py_binary(
+    name = "optimize",
+    srcs = [
+        "design_study.py",
+        "optimize.py",
+        "results.py",
+        "solve.py",
+        "taper_mesh.py",
+    ],
+    args = [
+        "--generator",
+        "$(rootpath //geometry:generate)",
+        "--solver",
+        "$(rootpath //tools/palace/source:palace_gpu)",
+    ],
+    data = [
+        "//geometry:generate",
+        "//tools/palace/source:palace_gpu",
+    ],
+    imports = ["."],
+    python_version = "3.12",
+    deps = ["@viewer_deps//scipy"],
+)
+
+py_test(
+    name = "optimize_test",
+    srcs = [
+        "design_study.py",
+        "optimize.py",
+        "optimize_test.py",
+        "results.py",
+        "solve.py",
+        "taper_mesh.py",
+    ],
+    imports = ["."],
+    python_version = "3.12",
+    deps = ["@viewer_deps//scipy"],
 )

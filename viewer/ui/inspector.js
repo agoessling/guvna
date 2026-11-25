@@ -10,6 +10,12 @@ const paths = {
 };
 
 const help = {
+  'Mesh stage': 'Start with the Gmsh input, then step through saved Palace solves.' +
+    ' Each solve has its own mesh, fields and port response. The camera and cut stay in place.',
+  'Stage comparison': 'Choose a reference run or the previous mesh. Solid curves show the active' +
+    ' run. Dashed curves show the reference for the same drive and output ports at' +
+    ' matching frequencies. |ΔS| is the absolute difference of the complex coefficients,' +
+    ' in linear units. The marker table shows values on the selected mesh.',
   'Field samples': 'Diamonds along the frequency axis mark saved fields for this drive. Click' +
     ' the plot or use its arrow keys to select a solved sample and inspect the available field.',
   'RF phase': 'Signed components show Re(E × exp(iφ)) at the selected RF phase. Blue and red' +
@@ -33,6 +39,7 @@ const help = {
   Excitation: 'Palace excitation index for this port. Zero or false means it is undriven.',
   Direction: 'Orientation of the port element in the Palace input coordinate system.',
   'Mesh sizing regions': 'These regions control the initial Gmsh element spacing.',
+  'Sizing axis': 'Direction along which this mesh spacing rule applies.',
   'Intervals per span': 'Number of initial mesh intervals across each specified span.',
   'Construction grid': 'Reference grid for orientation. Its lines are independent of mesh cells.',
 };
@@ -83,6 +90,10 @@ export async function startInspection(mount) {
   const response = await fetch('/api/cases');
   if (!response.ok) throw Error('Could not load the inspection inputs.');
   const inputs = await response.json();
+  const link = document.getElementById('history-link');
+  if (inputs.some(item => item.design)) link.hidden = false;
+  else fetch('/api/history').then(r => r.json()).then(h => { link.hidden = !h.enabled; })
+    .catch(() => {});
   const prompt = new Option(inputs.length ? 'Choose an input…' : 'No inspection inputs', '');
   prompt.disabled = true;
   source.replaceChildren(prompt);
@@ -120,10 +131,17 @@ export async function startInspection(mount) {
       if (!data.geometry?.mesh || !Array.isArray(data.groups) || !Array.isArray(data.points)) {
         throw Error('Invalid mesh response.');
       }
-      mount(data, id);
+      const historyReply = await fetch('/api/stages?case=' + encodeURIComponent(id), {
+        signal: controller.signal,
+      });
+      const stages = await historyReply.json();
+      if (!historyReply.ok) throw Error(stages.error || historyReply.statusText);
+      if (controller.signal.aborted) return;
+      mount(data, id, stages, inputs);
       active = id;
       prompt.remove();
       const url = new URL(location.href);
+      if (url.searchParams.get('inspect') !== id) url.searchParams.delete('stage');
       url.searchParams.set('inspect', id);
       history.replaceState(null, '', url);
       status.hidden = true;
